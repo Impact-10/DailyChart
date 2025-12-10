@@ -31,13 +31,60 @@ function getJulianDay(dateStr, timeStr, timezone) {
   const [year, month, day] = dateStr.split('-').map(Number);
   const [hours, minutes] = timeStr.split(':').map(Number);
   
-  // Convert local time to UTC
-  // Local time - timezone offset = UTC time
-  const utcHours = hours - timezone;
-  const utcMinutes = minutes;
+  // Convert local time to total minutes since midnight
+  const localMinutes = hours * 60 + minutes;
   
-  // Create a proper UTC date handling day overflow/underflow
-  const utcDate = new Date(Date.UTC(year, month - 1, day, utcHours, utcMinutes, 0));
+  // Convert to UTC minutes
+  const timezoneMinutes = Math.round(timezone * 60); // Round to handle floating point precision
+  const utcMinutes = localMinutes - timezoneMinutes;
+  
+  console.log('[JD-DEBUG] Timezone calc:', { 
+    timezone, 
+    timezoneMinutes, 
+    localMinutes, 
+    utcMinutes 
+  });
+  
+  // Calculate UTC date and time with proper day rollover
+  let utcDay = day;
+  let utcMonth = month;
+  let utcYear = year;
+  let utcHours = Math.floor(utcMinutes / 60);
+  let utcMins = utcMinutes % 60;
+  
+  // Handle negative hours (previous day)
+  if (utcHours < 0) {
+    utcHours += 24;
+    utcDay -= 1;
+    if (utcDay < 1) {
+      utcMonth -= 1;
+      if (utcMonth < 1) {
+        utcMonth = 12;
+        utcYear -= 1;
+      }
+      // Get days in previous month
+      const daysInMonth = new Date(utcYear, utcMonth, 0).getDate();
+      utcDay = daysInMonth;
+    }
+  }
+  
+  // Handle hours >= 24 (next day)
+  if (utcHours >= 24) {
+    utcHours -= 24;
+    utcDay += 1;
+    const daysInMonth = new Date(utcYear, utcMonth, 0).getDate();
+    if (utcDay > daysInMonth) {
+      utcDay = 1;
+      utcMonth += 1;
+      if (utcMonth > 12) {
+        utcMonth = 1;
+        utcYear += 1;
+      }
+    }
+  }
+  
+  // Create UTC date
+  const utcDate = new Date(Date.UTC(utcYear, utcMonth - 1, utcDay, utcHours, utcMins, 0));
   
   console.log('[JD-DEBUG] Input:', { dateStr, timeStr, timezone });
   console.log('[JD-DEBUG] Local time:', hours, ':', minutes);
