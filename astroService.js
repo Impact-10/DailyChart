@@ -25,25 +25,33 @@ const PLANET_LABELS = {
 
 /**
  * Convert date to Julian Day (matches Swiss Ephemeris calculation)
+ * Handles timezone conversion properly regardless of server location
  */
 function getJulianDay(dateStr, timeStr, timezone) {
   const [year, month, day] = dateStr.split('-').map(Number);
   const [hours, minutes] = timeStr.split(':').map(Number);
   
-  // Convert to UTC
-  const localDate = new Date(year, month - 1, day, hours, minutes, 0);
-  const utcDate = new Date(localDate.getTime() - timezone * 60 * 60 * 1000);
+  // Create date in UTC first, then adjust for the city's timezone
+  // This ensures consistent results regardless of server location
+  const utcDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+  
+  // Convert local time to UTC by subtracting timezone offset
+  const localTimeInMs = hours * 3600000 + minutes * 60000;
+  const timezoneOffsetInMs = timezone * 3600000;
+  const utcTimeInMs = localTimeInMs - timezoneOffsetInMs;
+  
+  const finalUTCDate = new Date(utcDate.getTime() + utcTimeInMs);
   
   // Calculate Julian Day using standard formula
-  const a = Math.floor((14 - utcDate.getUTCMonth() - 1) / 12);
-  const y = utcDate.getUTCFullYear() + 4800 - a;
-  const m = utcDate.getUTCMonth() + 1 + 12 * a - 3;
+  const a = Math.floor((14 - finalUTCDate.getUTCMonth() - 1) / 12);
+  const y = finalUTCDate.getUTCFullYear() + 4800 - a;
+  const m = finalUTCDate.getUTCMonth() + 1 + 12 * a - 3;
   
-  const jdn = utcDate.getUTCDate() + Math.floor((153 * m + 2) / 5) + 365 * y + 
+  const jdn = finalUTCDate.getUTCDate() + Math.floor((153 * m + 2) / 5) + 365 * y + 
               Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045;
   
-  const jd = jdn + (utcDate.getUTCHours() - 12) / 24 + utcDate.getUTCMinutes() / 1440 + 
-             utcDate.getUTCSeconds() / 86400;
+  const jd = jdn + (finalUTCDate.getUTCHours() - 12) / 24 + finalUTCDate.getUTCMinutes() / 1440 + 
+             finalUTCDate.getUTCSeconds() / 86400;
   
   return jd;
 }
