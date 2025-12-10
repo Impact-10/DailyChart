@@ -52,6 +52,8 @@ function getJulianDay(dateStr, timeStr, timezone) {
   let utcHours = Math.floor(utcMinutes / 60);
   let utcMins = utcMinutes % 60;
   
+  console.log('[JD-DEBUG] Before rollover:', { utcYear, utcMonth, utcDay, utcHours, utcMins });
+  
   // Handle negative hours (previous day)
   if (utcHours < 0) {
     utcHours += 24;
@@ -86,9 +88,11 @@ function getJulianDay(dateStr, timeStr, timezone) {
   // Create UTC date
   const utcDate = new Date(Date.UTC(utcYear, utcMonth - 1, utcDay, utcHours, utcMins, 0));
   
+  console.log('[JD-DEBUG] After rollover:', { utcYear, utcMonth, utcDay, utcHours, utcMins });
   console.log('[JD-DEBUG] Input:', { dateStr, timeStr, timezone });
   console.log('[JD-DEBUG] Local time:', hours, ':', minutes);
-  console.log('[JD-DEBUG] UTC time:', utcDate.toISOString());
+  console.log('[JD-DEBUG] Final UTC date:', utcDate.toISOString());
+  console.log('[JD-DEBUG] Expected: 2025-12-10T00:00:00.000Z for Chennai 05:30');
   
   // Calculate Julian Day using standard formula
   const a = Math.floor((14 - utcDate.getUTCMonth() - 1) / 12);
@@ -251,12 +255,40 @@ function calculateDailyChart(dateStr, timeStr, cityName) {
     const [year, month, day] = dateStr.split('-').map(Number);
     const [hours, minutes] = timeStr.split(':').map(Number);
     
-    // Create UTC date
-    const localDate = new Date(year, month - 1, day, hours, minutes, 0);
-    const utcDate = new Date(localDate.getTime() - city.tz * 60 * 60 * 1000);
-    
-    // Calculate Julian Day
+    // Calculate Julian Day (this also properly converts to UTC)
     const julday = getJulianDay(dateStr, timeStr, city.tz);
+    
+    // Create proper UTC date for astronomy calculations
+    // Convert local time to UTC by subtracting timezone offset
+    const localMinutes = hours * 60 + minutes;
+    const timezoneMinutes = Math.round(city.tz * 60);
+    const utcMinutes = localMinutes - timezoneMinutes;
+    
+    let utcDay = day;
+    let utcMonth = month;
+    let utcYear = year;
+    let utcHours = Math.floor(utcMinutes / 60);
+    let utcMins = utcMinutes % 60;
+    
+    // Handle day rollover for negative hours
+    if (utcHours < 0) {
+      utcHours += 24;
+      utcDay -= 1;
+      if (utcDay < 1) {
+        utcMonth -= 1;
+        if (utcMonth < 1) {
+          utcMonth = 12;
+          utcYear -= 1;
+        }
+        const daysInMonth = new Date(utcYear, utcMonth, 0).getDate();
+        utcDay = daysInMonth;
+      }
+    }
+    
+    // Create UTC date object for astronomy-engine
+    const utcDate = new Date(Date.UTC(utcYear, utcMonth - 1, utcDay, utcHours, utcMins, 0));
+    
+    console.log('[CALC-DEBUG] Creating utcDate for astronomy calculations:', utcDate.toISOString());
     
     // Calculate Lahiri ayanamsa
     const ayanamsa = getLahiriAyanamsa(julday);
