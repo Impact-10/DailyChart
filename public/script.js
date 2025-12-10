@@ -20,6 +20,18 @@ const RASI_NAMES = [
     'Dhanus', 'Makara', 'Kumbha', 'Meena'
 ];
 
+// Get API base URL - works for both localhost and deployed versions
+function getAPIBaseURL() {
+    // If running on localhost, use localhost
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return `http://localhost:${window.location.port || 3000}`;
+    }
+    // If deployed on production, use same origin
+    return window.location.origin;
+}
+
+const API_BASE_URL = getAPIBaseURL();
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize theme toggle
@@ -111,8 +123,7 @@ async function loadChart() {
     button.textContent = 'Calculating...';
     
     try {
-        const port = window.location.port || '3000';
-        const url = `http://localhost:${port}/api/daily-chart?date=${date}&time=${time}&city=${city}`;
+        const url = `${API_BASE_URL}/api/daily-chart?date=${date}&time=${time}&city=${city}`;
         const response = await fetch(url);
         
         if (!response.ok) {
