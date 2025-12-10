@@ -1,17 +1,37 @@
-// South Indian chart cell mapping - CLOCKWISE (Rasi index 0-11 to grid position)
-const SOUTH_INDIAN_POSITIONS = {
-    0: [0, 1],  // Mesha
-    1: [0, 2],  // Rishabha
-    2: [0, 3],  // Mithuna
-    3: [1, 3],  // Kataka
-    4: [2, 3],  // Simha
-    5: [3, 3],  // Kanya
-    6: [3, 2],  // Tula
-    7: [3, 1],  // Vrischika
-    8: [3, 0],  // Dhanus
-    9: [2, 0],  // Makara
-    10: [1, 0], // Kumbha
-    11: [0, 0]  // Meena
+// South Indian Chart House to Grid Position Mapping
+// Based on standard South Indian layout: 12 at top-left, 1 at top-center-left, clockwise
+const HOUSE_TO_GRID = {
+    12: [0, 0],  // Top-left
+    1:  [0, 1],  // Top-center-left
+    2:  [0, 2],  // Top-center-right
+    3:  [0, 3],  // Top-right
+    11: [1, 0],  // Middle-left
+    // [1,1], [1,2] = center merged cells
+    4:  [1, 3],  // Middle-right
+    10: [2, 0],  // Below middle-left
+    // [2,1], [2,2] = center merged cells
+    5:  [2, 3],  // Below middle-right
+    9:  [3, 0],  // Bottom-left
+    8:  [3, 1],  // Bottom-center-left
+    7:  [3, 2],  // Bottom-center-right
+    6:  [3, 3]   // Bottom-right
+};
+
+// Rasi index to House number mapping (for reference/validation)
+// Rasi 0 = House 1 (Mesha), Rasi 1 = House 2 (Rishabha), etc.
+const RASI_TO_HOUSE = {
+    0: 1,   // Mesha -> House 1
+    1: 2,   // Rishabha -> House 2
+    2: 3,   // Mithuna -> House 3
+    3: 4,   // Kataka -> House 4
+    4: 5,   // Simha -> House 5
+    5: 6,   // Kanya -> House 6
+    6: 7,   // Tula -> House 7
+    7: 8,   // Vrischika -> House 8
+    8: 9,   // Dhanus -> House 9
+    9: 10,  // Makara -> House 10
+    10: 11, // Kumbha -> House 11
+    11: 12  // Meena -> House 12
 };
 
 const RASI_NAMES = [
@@ -162,7 +182,7 @@ function renderChart(rasiData) {
     const chartContainer = document.getElementById('rasiChart');
     chartContainer.innerHTML = '';
     
-    // Create 4x4 grid
+    // Create 4x4 grid using house positions
     for (let row = 0; row < 4; row++) {
         for (let col = 0; col < 4; col++) {
             // Skip center cells (already merged)
@@ -178,25 +198,27 @@ function renderChart(rasiData) {
                 continue;
             }
             
-            // Find which rasi belongs to this position
-            let rasiIndex = -1;
-            for (let i = 0; i < 12; i++) {
-                const pos = SOUTH_INDIAN_POSITIONS[i];
-                if (pos[0] === row && pos[1] === col) {
-                    rasiIndex = i;
+            // Find which house belongs to this grid position
+            let houseNum = null;
+            for (const [house, gridPos] of Object.entries(HOUSE_TO_GRID)) {
+                if (gridPos[0] === row && gridPos[1] === col) {
+                    houseNum = parseInt(house);
                     break;
                 }
             }
             
-            if (rasiIndex !== -1) {
+            if (houseNum !== null) {
+                // Convert house number to rasi index (House 1-12 -> Rasi 0-11)
+                const rasiIndex = houseNum === 1 ? 0 : (houseNum - 1);
+                
                 const cell = document.createElement('div');
                 cell.className = 'chart-cell';
                 
-                // House number
-                const houseNum = document.createElement('div');
-                houseNum.className = 'house-number';
-                houseNum.textContent = rasiIndex + 1;
-                cell.appendChild(houseNum);
+                // House number display
+                const houseNumDisplay = document.createElement('div');
+                houseNumDisplay.className = 'house-number';
+                houseNumDisplay.textContent = houseNum;
+                cell.appendChild(houseNumDisplay);
                 
                 const rasiInfo = rasiData[rasiIndex];
                 
