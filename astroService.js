@@ -97,36 +97,65 @@ function getPlanetLongitude(date, bodyName, ayanamsa) {
  * Calculate tropical ascendant then convert to sidereal
  */
 function calculateAscendant(date, latitude, longitude, ayanamsa) {
+  // DEBUG: Log input parameters
+  console.log('[ASCENDANT-DEBUG] Input parameters:', {
+    date: date.toISOString(),
+    latitude,
+    longitude,
+    ayanamsa
+  });
+  
   // Get sidereal time
   const gast = Astronomy.SiderealTime(date);
+  console.log('[ASCENDANT-DEBUG] GAST (Greenwich Apparent Sidereal Time):', gast);
+  
   const lst = (gast + longitude / 15.0);
+  console.log('[ASCENDANT-DEBUG] LST (Local Sidereal Time):', lst);
+  
   const lstDegrees = (lst * 15.0) % 360;
+  console.log('[ASCENDANT-DEBUG] LST in degrees:', lstDegrees);
   
   // Mean obliquity of ecliptic
-  const T = (date.getTime() - new Date('2000-01-01T12:00:00Z').getTime()) / (86400000 * 36525);
+  // Use Julian Day for consistency with other calculations
+  const JD = (date.getTime() / 86400000) + 2440587.5;
+  const T = (JD - 2451545.0) / 36525.0;
+  console.log('[ASCENDANT-DEBUG] Julian Day:', JD, '| T:', T);
+  
   const obliquity = 23.439291 - 0.0130042 * T;
+  console.log('[ASCENDANT-DEBUG] Mean obliquity of ecliptic:', obliquity);
   
   // Calculate RAMC (Right Ascension of Medium Coeli)
   const ramc = lstDegrees;
+  console.log('[ASCENDANT-DEBUG] RAMC:', ramc);
   
   // Calculate tropical ascendant using spherical trigonometry
   const ramcRad = ramc * Math.PI / 180.0;
   const obliquityRad = obliquity * Math.PI / 180.0;
   const latRad = latitude * Math.PI / 180.0;
   
+  console.log('[ASCENDANT-DEBUG] Radians - RAMC:', ramcRad, '| Obliquity:', obliquityRad, '| Latitude:', latRad);
+  
   const numerator = Math.cos(ramcRad);
   const denominator = Math.cos(obliquityRad) * Math.sin(ramcRad) + 
                       Math.sin(obliquityRad) * Math.tan(latRad);
   
+  console.log('[ASCENDANT-DEBUG] Trig values - numerator:', numerator, '| denominator:', denominator);
+  
   let tropicalAsc = Math.atan2(numerator, denominator) * 180.0 / Math.PI;
+  console.log('[ASCENDANT-DEBUG] Tropical Ascendant (before normalization):', tropicalAsc);
   
   // Normalize to 0-360
   tropicalAsc = ((tropicalAsc % 360) + 360) % 360;
+  console.log('[ASCENDANT-DEBUG] Tropical Ascendant (normalized):', tropicalAsc);
   
   // Convert to sidereal
   let siderealAsc = tropicalAsc - ayanamsa;
+  console.log('[ASCENDANT-DEBUG] Sidereal Ascendant (before normalization):', siderealAsc);
+  
   while (siderealAsc < 0) siderealAsc += 360;
   while (siderealAsc >= 360) siderealAsc -= 360;
+  
+  console.log('[ASCENDANT-DEBUG] Sidereal Ascendant (final):', siderealAsc);
   
   return siderealAsc;
 }

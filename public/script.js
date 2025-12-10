@@ -156,6 +156,10 @@ async function loadChart() {
         // Hide loading, show results with animation
         loadingDiv.style.display = 'none';
         
+        // DEBUG: Log received data
+        console.log('[FRONTEND-DEBUG] Received rasiData:', data.rasiData);
+        console.log('[FRONTEND-DEBUG] Lagna Longitude:', data.lagnaLongitude);
+        
         // Show chart info with animation
         document.getElementById('chartDate').textContent = 
             `Transit positions for ${date} at ${time} in ${city}`;
@@ -181,6 +185,8 @@ async function loadChart() {
 function renderChart(rasiData) {
     const chartContainer = document.getElementById('rasiChart');
     chartContainer.innerHTML = '';
+    
+    console.log('[FRONTEND-DEBUG] Starting renderChart with rasiData keys:', Object.keys(rasiData));
     
     // Create 4x4 grid using house positions
     for (let row = 0; row < 4; row++) {
@@ -208,6 +214,8 @@ function renderChart(rasiData) {
             }
             
             if (houseNum !== null) {
+                console.log(`[FRONTEND-DEBUG] Processing grid[${row},${col}] - House ${houseNum}`);
+                
                 // Convert house number to rasi index (House 1-12 -> Rasi 0-11)
                 const rasiIndex = houseNum === 1 ? 0 : (houseNum - 1);
                 
@@ -222,12 +230,19 @@ function renderChart(rasiData) {
                 
                 const rasiInfo = rasiData[rasiIndex];
                 
+                // DEBUG: Log rasi data
+                if (rasiInfo.isLagna) {
+                    console.log(`[FRONTEND-DEBUG] Lagna found at House ${houseNum}, Rasi Index ${rasiIndex}`, rasiInfo);
+                }
+                console.log(`[FRONTEND-DEBUG]   House ${houseNum} -> RasiIndex ${rasiIndex}:`, rasiInfo);
+                
                 // Lagna marker
                 if (rasiInfo.isLagna) {
                     const lagnaMarker = document.createElement('div');
                     lagnaMarker.className = 'lagna-marker';
                     lagnaMarker.textContent = 'లక్ Asc';
                     cell.appendChild(lagnaMarker);
+                    console.log(`[FRONTEND-DEBUG] Added Lagna marker to House ${houseNum}`);
                 }
                 
                 // Planets

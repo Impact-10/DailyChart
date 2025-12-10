@@ -28,9 +28,40 @@ app.get('/api/daily-chart', (req, res) => {
   }
 });
 
-// Get available cities
+// DEBUG: Get available cities
 app.get('/api/cities', (req, res) => {
   res.json(Object.keys(CITIES));
+});
+
+// DEBUG: Detailed ascendant calculation endpoint
+app.get('/api/debug/ascendant', (req, res) => {
+  try {
+    const { date, time = '05:30', city = 'Chennai' } = req.query;
+    
+    if (!date) {
+      return res.status(400).json({ error: 'Date parameter is required' });
+    }
+    
+    // Run calculation - this will log to console
+    const chartData = calculateDailyChart(date, time, city);
+    
+    res.json({
+      message: 'Debug logs printed to server console. Check terminal/logs.',
+      chartData: {
+        date,
+        time,
+        city,
+        lagnaLongitude: chartData.lagnaLongitude,
+        lagnaRasi: chartData.lagnaRasi,
+        ayanamsa: chartData.ayanamsa,
+        timestamp: new Date().toISOString()
+      }
+    });
+    
+  } catch (error) {
+    console.error('[DEBUG-ERROR]', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 app.get('/', (req, res) => {
