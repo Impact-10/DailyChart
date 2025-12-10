@@ -31,27 +31,30 @@ function getJulianDay(dateStr, timeStr, timezone) {
   const [year, month, day] = dateStr.split('-').map(Number);
   const [hours, minutes] = timeStr.split(':').map(Number);
   
-  // Create date in UTC first, then adjust for the city's timezone
-  // This ensures consistent results regardless of server location
-  const utcDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+  // Convert local time to UTC
+  // Local time - timezone offset = UTC time
+  const utcHours = hours - timezone;
+  const utcMinutes = minutes;
   
-  // Convert local time to UTC by subtracting timezone offset
-  const localTimeInMs = hours * 3600000 + minutes * 60000;
-  const timezoneOffsetInMs = timezone * 3600000;
-  const utcTimeInMs = localTimeInMs - timezoneOffsetInMs;
+  // Create a proper UTC date handling day overflow/underflow
+  const utcDate = new Date(Date.UTC(year, month - 1, day, utcHours, utcMinutes, 0));
   
-  const finalUTCDate = new Date(utcDate.getTime() + utcTimeInMs);
+  console.log('[JD-DEBUG] Input:', { dateStr, timeStr, timezone });
+  console.log('[JD-DEBUG] Local time:', hours, ':', minutes);
+  console.log('[JD-DEBUG] UTC time:', utcDate.toISOString());
   
   // Calculate Julian Day using standard formula
-  const a = Math.floor((14 - finalUTCDate.getUTCMonth() - 1) / 12);
-  const y = finalUTCDate.getUTCFullYear() + 4800 - a;
-  const m = finalUTCDate.getUTCMonth() + 1 + 12 * a - 3;
+  const a = Math.floor((14 - utcDate.getUTCMonth() - 1) / 12);
+  const y = utcDate.getUTCFullYear() + 4800 - a;
+  const m = utcDate.getUTCMonth() + 1 + 12 * a - 3;
   
-  const jdn = finalUTCDate.getUTCDate() + Math.floor((153 * m + 2) / 5) + 365 * y + 
+  const jdn = utcDate.getUTCDate() + Math.floor((153 * m + 2) / 5) + 365 * y + 
               Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045;
   
-  const jd = jdn + (finalUTCDate.getUTCHours() - 12) / 24 + finalUTCDate.getUTCMinutes() / 1440 + 
-             finalUTCDate.getUTCSeconds() / 86400;
+  const jd = jdn + (utcDate.getUTCHours() - 12) / 24 + utcDate.getUTCMinutes() / 1440 + 
+             utcDate.getUTCSeconds() / 86400;
+  
+  console.log('[JD-DEBUG] Julian Day:', jd);
   
   return jd;
 }
