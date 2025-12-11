@@ -17,20 +17,20 @@ const colors = {
   yellow: '\x1b[33m'
 };
 
-// Rasi names
+// Rasi names in Tamil
 const RASI_NAMES = [
-  'Mesha (Aries)',
-  'Rishabha (Taurus)',
-  'Mithuna (Gemini)',
-  'Kataka (Cancer)',
-  'Simha (Leo)',
-  'Kanya (Virgo)',
-  'Tula (Libra)',
-  'Vrischika (Scorpio)',
-  'Dhanus (Sagittarius)',
-  'Makara (Capricorn)',
-  'Kumbha (Aquarius)',
-  'Meena (Pisces)'
+  'மேஷம் (Aries)',
+  'ரிஷபம் (Taurus)',
+  'மிதுனம் (Gemini)',
+  'கடகம் (Cancer)',
+  'சிம்ஹம் (Leo)',
+  'கன்னியம் (Virgo)',
+  'துலாம் (Libra)',
+  'விருச்சிகம் (Scorpio)',
+  'தனுசு (Sagittarius)',
+  'மகரம் (Capricorn)',
+  'கும்பம் (Aquarius)',
+  'மீனம் (Pisces)'
 ];
 
 function formatDegrees(longitude) {

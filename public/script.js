@@ -35,9 +35,9 @@ const RASI_TO_HOUSE = {
 };
 
 const RASI_NAMES = [
-    'Mesha', 'Rishabha', 'Mithuna', 'Kataka',
-    'Simha', 'Kanya', 'Tula', 'Vrischika',
-    'Dhanus', 'Makara', 'Kumbha', 'Meena'
+    'மேஷம்', 'ரிஷபம்', 'மிதுனம்', 'கடகம்',
+    'சிம்ஹம்', 'கன்னியம்', 'துலாம்', 'விருச்சிகம்',
+    'தனுசு', 'மகரம்', 'கும்பம்', 'மீனம்'
 ];
 
 // Get API base URL - works for both localhost and deployed versions
@@ -325,7 +325,16 @@ function renderAuspiciousTimes(data) {
     document.getElementById('sunsetTime').textContent = data.sunset;
     
     // Update Rahu Kaal
-    document.getElementById('rahuKaalDay').textContent = `${data.rahuKaal.day} - Inauspicious Period`;
+    const dayNamesInTamil = {
+      'Sunday': 'ஞாயிற்றுக்கிழமை',
+      'Monday': 'திங்கட்கிழமை',
+      'Tuesday': 'செவ்வாய்கிழமை',
+      'Wednesday': 'புதன்கிழமை',
+      'Thursday': 'வியாழக்கிழமை',
+      'Friday': 'வெள்ளிக்கிழமை',
+      'Saturday': 'சனிக்கிழமை'
+    };
+    document.getElementById('rahuKaalDay').textContent = `${dayNamesInTamil[data.rahuKaal.day]} - Inauspicious Period`;
     document.getElementById('rahuKaalTime').innerHTML = `
         <span class="time-start">${data.rahuKaal.startTime}</span>
         <span class="time-separator">to</span>
@@ -334,7 +343,7 @@ function renderAuspiciousTimes(data) {
     document.getElementById('rahuKaalDuration').textContent = `Duration: ${data.rahuKaal.duration}`;
     
     // Update Yamaganda (now shows both day and night periods)
-    document.getElementById('yamagandaDay').textContent = 'Yamaganda - Yama Ghantika';
+    document.getElementById('yamagandaDay').textContent = 'யம கண்டிகை - Yama Ghantika';
     document.getElementById('yamagandaTime').innerHTML = `
         <div style="margin-bottom: 8px;">
             <strong>Day Period (2nd Ghatika):</strong><br>
