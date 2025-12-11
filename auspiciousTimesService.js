@@ -59,8 +59,8 @@ function getSunriseSunset(dateStr, latitude, longitude, timezone, cityName) {
 
   const [year, month, day] = dateStr.split('-').map(Number);
   
-  // Start search from local midnight
-  const localMidnight = new Date(year, month - 1, day, 0, 0, 0);
+  // Create midnight in UTC (not local), then pass to astronomy-engine
+  const utcMidnight = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
   
   const observer = new Astronomy.Observer(latitude, longitude, 0);
   
@@ -69,7 +69,7 @@ function getSunriseSunset(dateStr, latitude, longitude, timezone, cityName) {
     Astronomy.Body.Sun,
     observer,
     1,
-    localMidnight,
+    utcMidnight,
     1 // Search within 1 day
   );
   
@@ -78,7 +78,7 @@ function getSunriseSunset(dateStr, latitude, longitude, timezone, cityName) {
     Astronomy.Body.Sun,
     observer,
     -1,
-    localMidnight,
+    utcMidnight,
     1
   );
   
@@ -106,9 +106,9 @@ function getSunriseSunset(dateStr, latitude, longitude, timezone, cityName) {
 function calculateRahuKaal(dateStr, latitude, longitude, timezone, cityName) {
   const { sunrise, sunset, sunriseDate, sunsetDate } = getSunriseSunset(dateStr, latitude, longitude, timezone, cityName);
   
-  // Get day of week (0 = Sunday, 6 = Saturday)
-  const date = new Date(dateStr);
-  const dayOfWeek = date.getDay();
+  // Get day of week (0 = Sunday, 6 = Saturday) from the IST date string
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const dayOfWeek = new Date(year, month - 1, day).getDay();
   
   // Calculate day duration in minutes
   const dayDurationMs = sunsetDate.getTime() - sunriseDate.getTime();
@@ -162,8 +162,9 @@ function calculateRahuKaal(dateStr, latitude, longitude, timezone, cityName) {
 function calculateYamaganda(dateStr, latitude, longitude, timezone, cityName) {
   const { sunriseDate, sunsetDate } = getSunriseSunset(dateStr, latitude, longitude, timezone, cityName);
 
-  const date = new Date(dateStr);
-  const dayOfWeek = date.getDay();
+  // Get day of week (0 = Sunday, 6 = Saturday) from the IST date string
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const dayOfWeek = new Date(year, month - 1, day).getDay();
 
   // Golden Chennai standard Yamaganda slots - BOTH day and night are FIXED times
   // Format: { dayStart, dayEnd, nightStart, nightEnd }
@@ -254,25 +255,32 @@ function calculateYamaganda(dateStr, latitude, longitude, timezone, cityName) {
 }
 
 /**
- * Format time as HH:MM AM/PM
+ * Format time as HH:MM AM/PM in IST timezone
  */
 function formatTime(date) {
-  let hours = date.getHours();
-  let minutes = date.getMinutes();
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  hours = hours % 12;
-  hours = hours ? hours : 12; // 0 becomes 12
-  minutes = minutes < 10 ? '0' + minutes : minutes;
-  return `${hours}:${minutes} ${ampm}`;
+  // Explicitly use Asia/Kolkata timezone to ensure IST display regardless of server timezone
+  return date.toLocaleString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'Asia/Kolkata'
+  }).replace(/^(\d{1,2}):(\d{2})\s(AM|PM)$/, (match, h, m, period) => {
+    // Remove leading zero from hour if present
+    return `${parseInt(h, 10)}:${m} ${period}`;
+  });
 }
 
 /**
- * Format time as HH:MM (24-hour format)
+ * Format time as HH:MM (24-hour format) in IST timezone
  */
 function formatTime24(date) {
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  return `${hours}:${minutes}`;
+  // Explicitly use Asia/Kolkata timezone to ensure IST display regardless of server timezone
+  return date.toLocaleString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'Asia/Kolkata'
+  });
 }
 
 /**
