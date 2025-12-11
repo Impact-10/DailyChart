@@ -179,8 +179,8 @@ function calculateYamaganda(dateStr, latitude, longitude, timezone, cityName) {
 
   const slots = yamagandaFixedSlots[dayOfWeek];
 
-  // Convert fixed time strings to Date objects
-  function timeToDate(dateStr, timeStr) {
+  // Convert fixed time strings to Date objects using timezone-aware helper
+  function timeToDate(dateStr, timeStr, timezone) {
     let hours = parseInt(timeStr.split(':')[0].trim());
     const minutes = parseInt(timeStr.split(':')[1].split(' ')[0].trim());
     const isPM = timeStr.includes('PM') && hours !== 12;
@@ -189,15 +189,14 @@ function calculateYamaganda(dateStr, latitude, longitude, timezone, cityName) {
     if (isPM) hours += 12;
     if (isAM12) hours = 0;
     
-    const d = new Date(dateStr);
-    d.setHours(hours, minutes, 0, 0);
-    return d;
+    const timeFormatted = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    return toLocalDate(dateStr, timeFormatted, timezone);
   }
 
-  const dayStartTime = timeToDate(dateStr, slots.dayStart);
-  const dayEndTime = timeToDate(dateStr, slots.dayEnd);
-  const nightStartTime = timeToDate(dateStr, slots.nightStart);
-  let nightEndTime = timeToDate(dateStr, slots.nightEnd);
+  const dayStartTime = timeToDate(dateStr, slots.dayStart, timezone);
+  const dayEndTime = timeToDate(dateStr, slots.dayEnd, timezone);
+  const nightStartTime = timeToDate(dateStr, slots.nightStart, timezone);
+  let nightEndTime = timeToDate(dateStr, slots.nightEnd, timezone);
 
   // Handle night windows that cross midnight
   if (nightEndTime < nightStartTime) {
