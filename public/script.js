@@ -171,6 +171,9 @@ async function loadChart() {
         // Show chart with animation (will trigger via CSS animation)
         chartContainer.style.display = 'block';
         
+        // Load auspicious times
+        await loadAuspiciousTimes(date, city);
+        
     } catch (error) {
         loadingDiv.style.display = 'none';
         showError(error.message);
@@ -288,3 +291,178 @@ function showError(message) {
     `;
     errorDiv.style.display = 'block';
 }
+// =====================================================
+// Auspicious Times Functions
+// =====================================================
+
+let currentAuspiciousDate = null;
+
+async function loadAuspiciousTimes(dateStr, cityName) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/auspicious-times?date=${dateStr}&city=${cityName}`);
+        
+        if (!response.ok) {
+            throw new Error('Failed to load auspicious times');
+        }
+        
+        const data = await response.json();
+        currentAuspiciousDate = dateStr;
+        
+        // Update UI
+        renderAuspiciousTimes(data);
+        
+        // Show the auspicious times section
+        document.getElementById('auspiciousTimesContainer').style.display = 'block';
+        
+    } catch (error) {
+        console.error('Error loading auspicious times:', error);
+    }
+}
+
+function renderAuspiciousTimes(data) {
+    // Update sunrise/sunset
+    document.getElementById('sunriseTime').textContent = data.sunrise;
+    document.getElementById('sunsetTime').textContent = data.sunset;
+    
+    // Update Rahu Kaal
+    document.getElementById('rahuKaalDay').textContent = `${data.rahuKaal.day} - Inauspicious Period`;
+    document.getElementById('rahuKaalTime').innerHTML = `
+        <span class="time-start">${data.rahuKaal.startTime}</span>
+        <span class="time-separator">to</span>
+        <span class="time-end">${data.rahuKaal.endTime}</span>
+    `;
+    document.getElementById('rahuKaalDuration').textContent = `Duration: ${data.rahuKaal.duration}`;
+    
+    // Update Yamaganda (now shows both day and night periods)
+    document.getElementById('yamagandaDay').textContent = 'Yamaganda - Yama Ghantika';
+    document.getElementById('yamagandaTime').innerHTML = `
+        <div style="margin-bottom: 8px;">
+            <strong>Day Period (2nd Ghatika):</strong><br>
+            <span class="time-start">${data.yamaganda.dayPeriod.startTime}</span>
+            <span class="time-separator">to</span>
+            <span class="time-end">${data.yamaganda.dayPeriod.endTime}</span>
+        </div>
+        <div>
+            <strong>Night Period (4th Ghatika):</strong><br>
+            <span class="time-start">${data.yamaganda.nightPeriod.startTime}</span>
+            <span class="time-separator">to</span>
+            <span class="time-end">${data.yamaganda.nightPeriod.endTime}</span>
+        </div>
+    `;
+    document.getElementById('yamagandaDuration').textContent = `Day: ${data.yamaganda.dayPeriod.duration} | Night: ${data.yamaganda.nightPeriod.duration}`;
+    
+    // Render Ghatika chart
+    renderGhatikaChart(data.yamaganda.ghatikas, data.yamaganda.activeGhatika);
+}
+
+function renderGhatikaChart(ghatikas, activeGhatika) {
+    const svg = document.getElementById('ghatikaChart');
+    svg.innerHTML = ''; // Clear existing
+    
+    const centerX = 100;
+    const centerY = 100;
+    const radius = 80;
+    const innerRadius = 40;
+    
+    // Create 8 segments (45 degrees each)
+    ghatikas.forEach((ghatika, index) => {
+        const startAngle = (index * 45 - 90) * (Math.PI / 180); // Start from top
+        const endAngle = ((index + 1) * 45 - 90) * (Math.PI / 180);
+        
+        // Calculate outer arc points
+        const x1 = centerX + radius * Math.cos(startAngle);
+        const y1 = centerY + radius * Math.sin(startAngle);
+        const x2 = centerX + radius * Math.cos(endAngle);
+        const y2 = centerY + radius * Math.sin(endAngle);
+        
+        // Calculate inner arc points
+        const x3 = centerX + innerRadius * Math.cos(endAngle);
+        const y3 = centerY + innerRadius * Math.sin(endAngle);
+        const x4 = centerX + innerRadius * Math.cos(startAngle);
+        const y4 = centerY + innerRadius * Math.sin(startAngle);
+        
+        // Create path
+        const pathData = [
+            `M ${x1} ${y1}`,
+            `A ${radius} ${radius} 0 0 1 ${x2} ${y2}`,
+            `L ${x3} ${y3}`,
+            `A ${innerRadius} ${innerRadius} 0 0 0 ${x4} ${y4}`,
+            `Z`
+        ].join(' ');
+        
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', pathData);
+        path.setAttribute('class', `ghatika-segment ${ghatika.isYamaganda ? 'yamaganda' : 'normal'}`);
+        path.setAttribute('data-ghatika', index + 1);
+        
+        // Add tooltip
+        const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+        title.textContent = `Ghatika ${ghatika.number}: ${ghatika.startTime} - ${ghatika.endTime}${ghatika.isYamaganda ? ' (Yamaganda)' : ''}`;
+        path.appendChild(title);
+        
+        svg.appendChild(path);
+        
+        // Add label
+        const labelAngle = (index * 45 + 22.5 - 90) * (Math.PI / 180);
+        const labelRadius = (radius + innerRadius) / 2;
+        const labelX = centerX + labelRadius * Math.cos(labelAngle);
+        const labelY = centerY + labelRadius * Math.sin(labelAngle);
+        
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', labelX);
+        text.setAttribute('y', labelY);
+        text.setAttribute('class', 'ghatika-label');
+        text.textContent = ghatika.number;
+        svg.appendChild(text);
+    });
+    
+    // Add center circle
+    const centerCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    centerCircle.setAttribute('cx', centerX);
+    centerCircle.setAttribute('cy', centerY);
+    centerCircle.setAttribute('r', innerRadius);
+    centerCircle.setAttribute('fill', 'var(--bg-secondary)');
+    centerCircle.setAttribute('stroke', 'var(--color-border)');
+    centerCircle.setAttribute('stroke-width', '2');
+    svg.appendChild(centerCircle);
+    
+    // Add center text
+    const centerText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    centerText.setAttribute('x', centerX);
+    centerText.setAttribute('y', centerY);
+    centerText.setAttribute('text-anchor', 'middle');
+    centerText.setAttribute('dominant-baseline', 'middle');
+    centerText.setAttribute('fill', 'var(--color-text)');
+    centerText.setAttribute('font-size', '14');
+    centerText.setAttribute('font-weight', '600');
+    centerText.textContent = '8 Ghatikas';
+    svg.appendChild(centerText);
+}
+
+// Day navigation functions
+function changeDate(direction) {
+    const dateInput = document.getElementById('date');
+    const currentDate = new Date(dateInput.value);
+    
+    if (direction === 'prev') {
+        currentDate.setDate(currentDate.getDate() - 1);
+    } else if (direction === 'next') {
+        currentDate.setDate(currentDate.getDate() + 1);
+    } else if (direction === 'today') {
+        const today = new Date();
+        currentDate.setTime(today.getTime());
+    }
+    
+    const newDateStr = currentDate.toISOString().split('T')[0];
+    dateInput.value = newDateStr;
+    
+    // Reload both chart and auspicious times
+    loadChart();
+}
+
+// Initialize day navigation buttons
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('prevDay')?.addEventListener('click', () => changeDate('prev'));
+    document.getElementById('nextDay')?.addEventListener('click', () => changeDate('next'));
+    document.getElementById('todayBtn')?.addEventListener('click', () => changeDate('today'));
+});

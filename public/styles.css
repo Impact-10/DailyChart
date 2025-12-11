@@ -1245,3 +1245,341 @@ body {
         transition-duration: 0.01ms !important;
     }
 }
+/* =====================================================
+   Auspicious Times Section
+   ===================================================== */
+
+.auspicious-section {
+    margin-top: 3rem;
+    animation: fadeIn 0.6s ease-out;
+}
+
+.section-title {
+    font-size: 1.75rem;
+    color: var(--color-text);
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+/* Day Navigation */
+.day-navigation {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+
+.nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    color: var(--color-text);
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.nav-btn:hover {
+    background: var(--color-accent);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.nav-btn-today {
+    background: var(--color-accent);
+    color: white;
+}
+
+.nav-btn-today:hover {
+    background: var(--color-accent-alt);
+}
+
+.nav-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Sun Times */
+.sun-times {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.sun-time-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+}
+
+.sun-icon {
+    font-size: 2rem;
+}
+
+.sun-label {
+    font-size: 0.85rem;
+    color: var(--color-text-light);
+    margin-bottom: 0.25rem;
+}
+
+.sun-value {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+/* Timing Cards */
+.timing-card {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-md);
+    transition: all 0.3s ease;
+}
+
+.timing-card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.card-icon {
+    flex-shrink: 0;
+}
+
+.card-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: 0.25rem;
+}
+
+.card-subtitle {
+    font-size: 0.9rem;
+    color: var(--color-text-light);
+}
+
+/* Rahu Kaal Specific */
+.rahu-kaal-card {
+    border-left: 4px solid #8B0000;
+}
+
+.rahu-icon svg {
+    filter: drop-shadow(0 2px 4px rgba(139, 0, 0, 0.2));
+}
+
+.rahu-kaal-card .time-range {
+    color: #8B0000;
+}
+
+/* Yamaganda Specific */
+.yamaganda-card {
+    border-left: 4px solid #6B4423;
+}
+
+.yamaganda-icon svg {
+    filter: drop-shadow(0 2px 4px rgba(107, 68, 35, 0.2));
+}
+
+.yamaganda-card .time-range {
+    color: #6B4423;
+}
+
+/* Timing Display */
+.timing-display {
+    text-align: center;
+    padding: 1.5rem;
+    background: var(--bg-accent);
+    border-radius: 12px;
+}
+
+.time-range {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.time-separator {
+    font-size: 1.25rem;
+    font-weight: 400;
+    color: var(--color-text-light);
+}
+
+.duration {
+    font-size: 1rem;
+    color: var(--color-text-light);
+    font-weight: 500;
+}
+
+/* Yamaganda Content */
+.yamaganda-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-items: center;
+}
+
+/* Ghatika Chart */
+.ghatika-chart-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.ghatika-chart {
+    max-width: 200px;
+    width: 100%;
+    height: auto;
+}
+
+.ghatika-segment {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.ghatika-segment:hover {
+    opacity: 0.8;
+    transform: scale(1.05);
+    transform-origin: center;
+}
+
+.ghatika-segment.normal {
+    fill: var(--color-accent);
+    stroke: white;
+    stroke-width: 2;
+}
+
+.ghatika-segment.yamaganda {
+    fill: #6B4423;
+    stroke: white;
+    stroke-width: 2;
+    filter: drop-shadow(0 2px 4px rgba(107, 68, 35, 0.3));
+}
+
+.ghatika-label {
+    font-size: 10px;
+    fill: white;
+    text-anchor: middle;
+    dominant-baseline: middle;
+    font-weight: 600;
+    pointer-events: none;
+}
+
+/* Ghatika Legend */
+.ghatika-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--color-text-light);
+}
+
+.legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    border: 1px solid var(--color-border);
+}
+
+.legend-color.normal {
+    background: var(--color-accent);
+}
+
+.legend-color.yamaganda {
+    background: #6B4423;
+}
+
+/* Responsive Design for Auspicious Times */
+@media (max-width: 768px) {
+    .yamaganda-content {
+        grid-template-columns: 1fr;
+    }
+    
+    .sun-times {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .timing-card {
+        padding: 1.5rem;
+    }
+    
+    .card-title {
+        font-size: 1.25rem;
+    }
+    
+    .time-range {
+        font-size: 1.5rem;
+        gap: 0.5rem;
+    }
+    
+    .section-title {
+        font-size: 1.5rem;
+    }
+    
+    .day-navigation {
+        gap: 0.5rem;
+    }
+    
+    .nav-btn {
+        padding: 0.6rem 1rem;
+        font-size: 0.85rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .time-range {
+        font-size: 1.25rem;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    
+    .time-separator {
+        font-size: 1rem;
+    }
+    
+    .nav-btn span {
+        display: none;
+    }
+    
+    .nav-btn {
+        padding: 0.6rem;
+    }
+    
+    .nav-btn-today span {
+        display: block;
+    }
+}

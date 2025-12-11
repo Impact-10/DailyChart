@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const { calculateDailyChart, CITIES } = require('./astroService');
+const { calculateAuspiciousTimes } = require('./auspiciousTimesService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -31,6 +32,24 @@ app.get('/api/daily-chart', (req, res) => {
 // DEBUG: Get available cities
 app.get('/api/cities', (req, res) => {
   res.json(Object.keys(CITIES));
+});
+
+// API endpoint for auspicious times (Rahu Kaal, Yamaganda)
+app.get('/api/auspicious-times', (req, res) => {
+  try {
+    const { date, city = 'Chennai' } = req.query;
+    
+    if (!date) {
+      return res.status(400).json({ error: 'Date parameter is required' });
+    }
+    
+    const auspiciousData = calculateAuspiciousTimes(date, city);
+    res.json(auspiciousData);
+    
+  } catch (error) {
+    console.error('Error calculating auspicious times:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // DEBUG: Detailed ascendant calculation endpoint
