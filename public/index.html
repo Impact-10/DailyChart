@@ -145,7 +145,7 @@
                     </div>
 
                     <!-- Rahu Kaal Card -->
-                    <div class="timing-card rahu-kaal-card">
+                    <div class="timing-card rahu-kaal-card card-animate">
                         <div class="card-header">
                             <div class="card-icon rahu-icon">
                                 <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
@@ -158,6 +158,7 @@
                             <div>
                                 <h3 class=\"card-title\">ராகு காலம் (Rahu Kaal)</h3>
                                 <p class="card-subtitle" id="rahuKaalDay">Inauspicious Period</p>
+                                <div class="card-badge warning" id="rahuBadge">⚠️ Avoid starting important tasks</div>
                             </div>
                         </div>
                         <div class="timing-display">
@@ -167,11 +168,12 @@
                                 <span class="time-end">--:--</span>
                             </div>
                             <div class="duration" id="rahuKaalDuration">Duration: --</div>
+                            <div class="countdown" id="rahuKaalCountdown"></div>
                         </div>
                     </div>
 
                     <!-- Yamaganda Card -->
-                    <div class="timing-card yamaganda-card">
+                    <div class="timing-card yamaganda-card card-animate">
                         <div class="card-header">
                             <div class="card-icon yamaganda-icon">
                                 <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
@@ -182,6 +184,7 @@
                             <div>
                                 <h3 class=\"card-title\">யம கண்டிகை (Yamaganda)</h3>
                                 <p class="card-subtitle" id="yamagandaDay">Yama Ghantika</p>
+                                <div class="card-badge caution" id="yamagandaBadge">⚡ Inauspicious segment</div>
                             </div>
                         </div>
                         <div class="yamaganda-content">
@@ -192,6 +195,7 @@
                                     <span class="time-end">--:--</span>
                                 </div>
                                 <div class="duration" id="yamagandaDuration">Duration: --</div>
+                                <div class="countdown" id="yamagandaCountdown"></div>
                             </div>
                             <!-- Ghatika Chart -->
                             <div class="ghatika-chart-container">
@@ -220,7 +224,7 @@
                         </h2>
 
                         <!-- Tithi Card -->
-                        <div class="timing-card panchang-card">
+                        <div class="timing-card panchang-card card-animate">
                             <div class="card-header">
                                 <div class="card-icon tithi-icon">
                                     <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
@@ -229,7 +233,7 @@
                                     </svg>
                                 </div>
                                 <div>
-                                    <h3 class="card-title">திதி (Tithi)</h3>
+                                    <h3 class="card-title">திதி (Tithi)<span class="panchang-info-icon" title="Tithi represents the lunar day based on the angular difference between Sun and Moon. Each Tithi spans 12 degrees and influences daily activities.">i</span></h3>
                                     <p class="card-subtitle">Lunar Day</p>
                                 </div>
                             </div>
@@ -250,7 +254,7 @@
                         </div>
 
                         <!-- Nakshatra Card -->
-                        <div class="timing-card panchang-card">
+                        <div class="timing-card panchang-card card-animate">
                             <div class="card-header">
                                 <div class="card-icon nakshatra-icon">
                                     <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
@@ -262,7 +266,7 @@
                                     </svg>
                                 </div>
                                 <div>
-                                    <h3 class="card-title">நட்சத்திரம் (Nakshatra)</h3>
+                                    <h3 class="card-title">நட்சத்திரம் (Nakshatra)<span class="panchang-info-icon" title="Nakshatra is one of 27 lunar mansions. Each spans 13.33 degrees and has a ruling planet, deity, and specific qualities that influence personality and events.">i</span></h3>
                                     <p class="card-subtitle">Lunar Mansion</p>
                                 </div>
                             </div>
@@ -285,7 +289,7 @@
                         </div>
 
                         <!-- Yoga Card -->
-                        <div class="timing-card panchang-card">
+                        <div class="timing-card panchang-card card-animate">
                             <div class="card-header">
                                 <div class="card-icon yoga-icon">
                                     <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
@@ -295,7 +299,7 @@
                                     </svg>
                                 </div>
                                 <div>
-                                    <h3 class="card-title">யோகம் (Yoga)</h3>
+                                    <h3 class="card-title">யோகம் (Yoga)<span class="panchang-info-icon" title="Yoga is formed by the combined movement of Sun and Moon. There are 27 Yogas, each with auspicious or inauspicious qualities affecting success in endeavors.">i</span></h3>
                                     <p class="card-subtitle">Sun-Moon Combination</p>
                                 </div>
                             </div>
@@ -315,7 +319,7 @@
                         </div>
 
                         <!-- Karana Card -->
-                        <div class="timing-card panchang-card">
+                        <div class="timing-card panchang-card card-animate">
                             <div class="card-header">
                                 <div class="card-icon karana-icon">
                                     <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
@@ -326,7 +330,7 @@
                                     </svg>
                                 </div>
                                 <div>
-                                    <h3 class="card-title">கரணம் (Karana)</h3>
+                                    <h3 class="card-title">கரணம் (Karana)<span class="panchang-info-icon" title="Karana is half of a Tithi. Each Tithi has 2 Karanas. There are 11 Karanas that cycle 60 times in a lunar month, influencing short-term activities.">i</span></h3>
                                     <p class="card-subtitle">Half-Tithi</p>
                                 </div>
                             </div>
@@ -346,7 +350,7 @@
                         </div>
 
                         <!-- Nalla Neram Card -->
-                        <div class="timing-card panchang-card">
+                        <div class="timing-card panchang-card card-animate">
                             <div class="card-header">
                                 <div class="card-icon nalla-neram-icon">
                                     <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
@@ -356,12 +360,13 @@
                                     </svg>
                                 </div>
                                 <div>
-                                    <h3 class="card-title">நல்ல நேரம் (Nalla Neram)</h3>
+                                    <h3 class="card-title">நல்ல நேரம் (Nalla Neram)<span class="panchang-info-icon" title="Nalla Neram are the most auspicious time windows of the day based on weekday. Ideal for starting important tasks, ceremonies, and new ventures.">i</span></h3>
                                     <p class="card-subtitle">Auspicious Time Windows</p>
                                 </div>
                             </div>
                             <div class="panchang-content">
                                 <div class="nalla-neram-day" id="nallaneramDay">--</div>
+                                <div class="card-badge success" id="nallaNeramHint">✓ Ideal for starting new tasks</div>
                                 <div id="nallaneramWindows" class="nalla-neram-windows">
                                     <!-- Will be populated dynamically -->
                                 </div>

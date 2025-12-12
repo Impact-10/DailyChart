@@ -1,6 +1,7 @@
 const Astronomy = require('astronomy-engine');
 const fs = require('fs');
 const path = require('path');
+const { formatIST, IST_TIMEZONE, getServerOffsetMinutes, getISTOffsetMinutes } = require('./timeUtils');
 
 // Load precomputed sunrise/sunset cache (AstroCamp-aligned)
 let SUN_CACHE = {};
@@ -91,8 +92,8 @@ function getSunriseSunset(dateStr, latitude, longitude, timezone, cityName) {
   const sunsetLocal = toJsDate(sunsetResult.date);
   
   return {
-    sunrise: formatTime(sunriseLocal),
-    sunset: formatTime(sunsetLocal),
+    sunrise: formatIST(sunriseLocal),
+    sunset: formatIST(sunsetLocal),
     sunriseDate: sunriseLocal,
     sunsetDate: sunsetLocal,
     source: 'astronomy-engine'
@@ -234,19 +235,19 @@ function calculateYamaganda(dateStr, latitude, longitude, timezone, cityName) {
 
   return {
     dayPeriod: {
-      startTime: formatTime(dayStartTime),
-      endTime: formatTime(dayEndTime),
+      startTime: formatIST(dayStartTime),
+      endTime: formatIST(dayEndTime),
       duration: `${dayDurationHours}h ${dayDurationMins}m`,
       durationMinutes: Math.round(dayDurationMinutes)
     },
     nightPeriod: {
-      startTime: formatTime(nightStartTime),
-      endTime: formatTime(nightEndTime),
+      startTime: formatIST(nightStartTime),
+      endTime: formatIST(nightEndTime),
       duration: `${nightDurationHours}h ${nightDurationMins}m`,
       durationMinutes: Math.round(nightDurationMinutes)
     },
-    startTime: formatTime(dayStartTime),
-    endTime: formatTime(dayEndTime),
+    startTime: formatIST(dayStartTime),
+    endTime: formatIST(dayEndTime),
     duration: `${dayDurationHours}h ${dayDurationMins}m`,
     durationMinutes: Math.round(dayDurationMinutes),
     ghatikas,
@@ -254,32 +255,17 @@ function calculateYamaganda(dateStr, latitude, longitude, timezone, cityName) {
   };
 }
 
-/**
- * Format time as HH:MM AM/PM in IST timezone
- */
+// Legacy wrappers retained for minimal churn
 function formatTime(date) {
-  // Explicitly use Asia/Kolkata timezone to ensure IST display regardless of server timezone
-  return date.toLocaleString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-    timeZone: 'Asia/Kolkata'
-  }).replace(/^(\d{1,2}):(\d{2})\s(AM|PM)$/, (match, h, m, period) => {
-    // Remove leading zero from hour if present
-    return `${parseInt(h, 10)}:${m} ${period}`;
-  });
+  return formatIST(date);
 }
 
-/**
- * Format time as HH:MM (24-hour format) in IST timezone
- */
 function formatTime24(date) {
-  // Explicitly use Asia/Kolkata timezone to ensure IST display regardless of server timezone
   return date.toLocaleString('en-US', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
-    timeZone: 'Asia/Kolkata'
+    timeZone: IST_TIMEZONE
   });
 }
 
@@ -310,7 +296,12 @@ function calculateAuspiciousTimes(dateStr, cityName) {
       sunriseSource: sunTimes.source,
       rahuKaal: rahuKaal,
       yamaganda: yamaganda,
-      calculatedAt: new Date().toISOString()
+      calculatedAt: new Date().toISOString(),
+      timezone: IST_TIMEZONE,
+      timezoneOffsetMinutes: getISTOffsetMinutes(),
+      serverTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      serverOffsetMinutes: getServerOffsetMinutes(),
+      serverTimeIST: formatIST(new Date())
     };
   } catch (error) {
     console.error('Error calculating auspicious times:', error);

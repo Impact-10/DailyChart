@@ -67,6 +67,48 @@ function getCurrentTimeIST() {
     return istTime;
 }
 
+function parseISTTimeToDate(timeStr, dateStr, offsetMinutes = 330) {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const trimmed = timeStr.trim();
+    const hasMeridian = /AM|PM/i.test(trimmed);
+    let hours = 0;
+    let minutes = 0;
+
+    if (hasMeridian) {
+        const [hm, meridianRaw] = trimmed.split(/\s+/);
+        const [hStr, mStr] = hm.split(':');
+        hours = parseInt(hStr, 10);
+        minutes = parseInt(mStr, 10);
+        const meridian = meridianRaw.toUpperCase();
+        if (meridian === 'PM' && hours !== 12) hours += 12;
+        if (meridian === 'AM' && hours === 12) hours = 0;
+    } else {
+        const [hStr, mStr] = trimmed.split(':');
+        hours = parseInt(hStr, 10);
+        minutes = parseInt(mStr, 10);
+    }
+
+    // Create a UTC date adjusted from IST offset so comparisons use absolute time
+    return new Date(Date.UTC(year, month - 1, day, hours, minutes) - offsetMinutes * 60 * 1000);
+}
+
+function isISTToday(dateStr, offsetMinutes = 330) {
+    const now = new Date();
+    const istNow = new Date(now.getTime() + (offsetMinutes - now.getTimezoneOffset()) * 60 * 1000);
+    const istDateStr = istNow.toISOString().split('T')[0];
+    return istDateStr === dateStr;
+}
+
+function formatRelativeDuration(diffMs) {
+    const totalSeconds = Math.max(0, Math.floor(Math.abs(diffMs) / 1000));
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    if (minutes > 0) return `${minutes}m ${seconds}s`;
+    return `${seconds}s`;
+}
+
 /**
  * Update live clock display every second
  */
@@ -370,6 +412,7 @@ function showError(message) {
 // =====================================================
 
 let currentAuspiciousDate = null;
+let liveCountdownTimer = null;
 
 async function loadAuspiciousTimes(dateStr, cityName) {
     try {
@@ -520,6 +563,137 @@ function renderAuspiciousTimes(data) {
     
     // Render Ghatika chart
     renderGhatikaChart(data.yamaganda.ghatikas, data.yamaganda.activeGhatika);
+
+    // Start live countdowns and highlights
+    startLiveTimers(data);
+}
+
+function startLiveTimers(data) {
+    if (liveCountdownTimer) {
+        clearInterval(liveCountdownTimer);
+    }
+
+    const offsetMinutes = data.timezoneOffsetMinutes || 330;
+    const tick = () => {
+        const isToday = isISTToday(data.date, offsetMinutes);
+        updateRahuCountdown(data, isToday, offsetMinutes);
+        updateYamagandaCountdown(data, isToday, offsetMinutes);
+        updateNallaNeramHighlight(data.nallaNeram, data.date, isToday, offsetMinutes);
+        updateActiveGhatika(data.yamaganda, data.date, isToday, offsetMinutes);
+    };
+
+    tick();
+    liveCountdownTimer = setInterval(tick, 1000);
+}
+
+function updateRahuCountdown(data, isToday, offsetMinutes) {
+    const el = document.getElementById('rahuKaalCountdown');
+    if (!el || !data?.rahuKaal) return;
+    if (!isToday) {
+        el.textContent = 'Live countdown available for today only';
+        return;
+    }
+
+    const now = new Date();
+    const start = parseISTTimeToDate(data.rahuKaal.startTime, data.date, offsetMinutes);
+    const end = parseISTTimeToDate(data.rahuKaal.endTime, data.date, offsetMinutes);
+
+    if (now < start) {
+        el.textContent = `Starts in ${formatRelativeDuration(start - now)}`;
+    } else if (now >= start && now <= end) {
+        el.textContent = `Ends in ${formatRelativeDuration(end - now)}`;
+    } else {
+        el.textContent = 'Completed';
+    }
+}
+
+function updateYamagandaCountdown(data, isToday, offsetMinutes) {
+    const el = document.getElementById('yamagandaCountdown');
+    if (!el || !data?.yamaganda) return;
+    if (!isToday) {
+        el.textContent = 'Live countdown available for today only';
+        return;
+    }
+
+    const now = new Date();
+    const segments = [
+        { label: 'Day period', start: data.yamaganda.dayPeriod.startTime, end: data.yamaganda.dayPeriod.endTime },
+        { label: 'Night period', start: data.yamaganda.nightPeriod.startTime, end: data.yamaganda.nightPeriod.endTime }
+    ];
+
+    let activeSegment = null;
+    let nextSegment = null;
+
+    segments.forEach(seg => {
+        const segStart = parseISTTimeToDate(seg.start, data.date, offsetMinutes);
+        const segEnd = parseISTTimeToDate(seg.end, data.date, offsetMinutes);
+        const spansMidnight = segEnd < segStart;
+        const adjustedEnd = spansMidnight ? new Date(segEnd.getTime() + 24 * 60 * 60 * 1000) : segEnd;
+
+        if (now >= segStart && now <= adjustedEnd) {
+            activeSegment = { ...seg, startDate: segStart, endDate: adjustedEnd };
+        } else if (now < segStart && !nextSegment) {
+            nextSegment = { ...seg, startDate: segStart, endDate: adjustedEnd };
+        }
+    });
+
+    if (activeSegment) {
+        el.textContent = `${activeSegment.label} ends in ${formatRelativeDuration(activeSegment.endDate - now)}`;
+    } else if (nextSegment) {
+        el.textContent = `${nextSegment.label} starts in ${formatRelativeDuration(nextSegment.startDate - now)}`;
+    } else {
+        el.textContent = 'Completed';
+    }
+}
+
+function updateNallaNeramHighlight(nallaNeram, dateStr, isToday, offsetMinutes) {
+    const container = document.getElementById('nallaneramWindows');
+    if (!container || !nallaNeram) return;
+    const now = new Date();
+
+    Array.from(container.children).forEach(child => {
+        const start = child.getAttribute('data-start');
+        const end = child.getAttribute('data-end');
+        if (!start || !end) return;
+
+        if (!isToday) {
+            child.classList.remove('active');
+            return;
+        }
+
+        const startDate = parseISTTimeToDate(start, dateStr, offsetMinutes);
+        const endDate = parseISTTimeToDate(end, dateStr, offsetMinutes);
+        const spansMidnight = endDate < startDate;
+        const adjustedEnd = spansMidnight ? new Date(endDate.getTime() + 24 * 60 * 60 * 1000) : endDate;
+
+        if (now >= startDate && now <= adjustedEnd) {
+            child.classList.add('active');
+        } else {
+            child.classList.remove('active');
+        }
+    });
+}
+
+function updateActiveGhatika(yamaganda, dateStr, isToday, offsetMinutes) {
+    if (!yamaganda?.ghatikas) return;
+    const now = new Date();
+    const paths = document.querySelectorAll('#ghatikaChart .ghatika-segment');
+    if (!paths.length) return;
+
+    let activeIndex = null;
+    yamaganda.ghatikas.forEach((g, idx) => {
+        const startDate = parseISTTimeToDate(g.startTime, dateStr, offsetMinutes);
+        const endDate = parseISTTimeToDate(g.endTime, dateStr, offsetMinutes);
+        if (now >= startDate && now <= endDate) {
+            activeIndex = idx + 1;
+        }
+    });
+
+    paths.forEach(path => {
+        const num = parseInt(path.getAttribute('data-ghatika'), 10);
+        const shouldBeActive = isToday && activeIndex === num;
+        path.classList.toggle('active', shouldBeActive);
+    });
 }
 
 function renderGhatikaChart(ghatikas, activeGhatika) {
@@ -726,6 +900,8 @@ function renderPanchang(panchang) {
             console.log(`      → Window ${index + 1}:`, window.start, '-', window.end, '(' + window.duration + ')');
             const windowDiv = document.createElement('div');
             windowDiv.className = 'nalla-neram-window';
+            windowDiv.setAttribute('data-start', window.start);
+            windowDiv.setAttribute('data-end', window.end);
             windowDiv.innerHTML = `
                 <div>
                     <div class="window-period">${window.period}</div>

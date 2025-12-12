@@ -1,4 +1,5 @@
 const Astronomy = require('astronomy-engine');
+const { IST_TIMEZONE, getISTOffsetMinutes, getServerOffsetMinutes, formatIST } = require('./timeUtils');
 
 /**
  * Complete Vedic Panchang Service
@@ -325,7 +326,12 @@ function calculateCompletePanchang(dateStr, timezone = 5.5) {
       karana,
       nallaNeram,
       ayanamsa: planets.ayanamsa.toFixed(4),
-      calculatedAt: new Date().toISOString()
+      calculatedAt: new Date().toISOString(),
+      timezone: IST_TIMEZONE,
+      timezoneOffsetMinutes: getISTOffsetMinutes(),
+      serverTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      serverOffsetMinutes: getServerOffsetMinutes(),
+      serverTimeIST: formatIST(new Date())
     };
   } catch (error) {
     console.error('Error calculating panchang:', error);

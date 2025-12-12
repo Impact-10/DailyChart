@@ -4,6 +4,7 @@ const path = require('path');
 const { calculateDailyChart, CITIES } = require('./astroService');
 const { calculateAuspiciousTimes } = require('./auspiciousTimesService');
 const { calculateCompletePanchang } = require('./panchangService');
+const { IST_TIMEZONE, getISTOffsetMinutes, getServerOffsetMinutes, formatIST } = require('./timeUtils');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,7 +23,14 @@ app.get('/api/daily-chart', (req, res) => {
     }
     
     const chartData = calculateDailyChart(date, time, city);
-    res.json(chartData);
+    res.json({
+      ...chartData,
+      timezone: IST_TIMEZONE,
+      timezoneOffsetMinutes: getISTOffsetMinutes(),
+      serverTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      serverOffsetMinutes: getServerOffsetMinutes(),
+      serverTimeIST: formatIST(new Date())
+    });
     
   } catch (error) {
     console.error('Error:', error);
@@ -93,8 +101,11 @@ app.get('/api/panchang', (req, res) => {
       // Metadata
       ayanamsa: panchangData.ayanamsa,
       calculatedAt: panchangData.calculatedAt,
-      timezone: 'Asia/Kolkata (IST)',
-      serverTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      timezone: panchangData.timezone || IST_TIMEZONE,
+      timezoneOffsetMinutes: panchangData.timezoneOffsetMinutes || getISTOffsetMinutes(),
+      serverTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      serverOffsetMinutes: getServerOffsetMinutes(),
+      serverTimeIST: formatIST(new Date())
     });
     
   } catch (error) {
