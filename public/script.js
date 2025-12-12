@@ -821,6 +821,9 @@ function renderPanchang(panchang) {
         document.getElementById('tithiNumber').textContent = `${panchang.tithi.number}/30`;
         document.getElementById('tithiName').textContent = panchang.tithi.name;
         document.getElementById('tithiPaksha').textContent = panchang.tithi.paksha;
+        if (panchang.tithi.startTime && panchang.tithi.endTime) {
+            document.getElementById('tithiTimeRange').textContent = `${panchang.tithi.startTime} → ${panchang.tithi.endTime}`;
+        }
         document.getElementById('tithiProgress').style.width = `${panchang.tithi.progress}%`;
         document.getElementById('tithiProgressLabel').textContent = `${panchang.tithi.progress}% Complete (${panchang.tithi.minutesRemaining} min remaining)`;
         
@@ -850,6 +853,9 @@ function renderPanchang(panchang) {
         document.getElementById('nakshatraName').textContent = panchang.nakshatra.name;
         document.getElementById('nakshatraLord').textContent = panchang.nakshatra.lord;
         document.getElementById('nakshatraDeity').textContent = panchang.nakshatra.deity;
+        if (panchang.nakshatra.startTime && panchang.nakshatra.endTime) {
+            document.getElementById('nakshatraTimeRange').textContent = `${panchang.nakshatra.startTime} → ${panchang.nakshatra.endTime}`;
+        }
         document.getElementById('nakshatraProgress').style.width = `${panchang.nakshatra.progress}%`;
         document.getElementById('nakshatraProgressLabel').textContent = `${panchang.nakshatra.progress}% Complete (${panchang.nakshatra.minutesUntilChange} min until ${panchang.nakshatra.nextNakshatra.split('(')[0]})`;
     } else {
@@ -866,6 +872,9 @@ function renderPanchang(panchang) {
         const yogaNature = document.getElementById('yogaNature');
         yogaNature.textContent = panchang.yoga.nature;
         yogaNature.className = 'yoga-nature ' + (panchang.yoga.nature.includes('சுபம்') || panchang.yoga.nature.includes('Auspicious') ? 'auspicious' : 'inauspicious');
+        if (panchang.yoga.startTime && panchang.yoga.endTime) {
+            document.getElementById('yogaTimeRange').textContent = `${panchang.yoga.startTime} → ${panchang.yoga.endTime}`;
+        }
         document.getElementById('yogaProgress').style.width = `${panchang.yoga.progress}%`;
         document.getElementById('yogaProgressLabel').textContent = `${panchang.yoga.progress}% Complete`;
     } else {
@@ -882,6 +891,9 @@ function renderPanchang(panchang) {
         const karanaNature = document.getElementById('karanaNature');
         karanaNature.textContent = panchang.karana.nature;
         karanaNature.className = 'karana-nature ' + (panchang.karana.nature.includes('சுபம்') || panchang.karana.nature.includes('Auspicious') ? 'auspicious' : 'inauspicious');
+        if (panchang.karana.startTime && panchang.karana.endTime) {
+            document.getElementById('karanaTimeRange').textContent = `${panchang.karana.startTime} → ${panchang.karana.endTime}`;
+        }
         document.getElementById('karanaProgress').style.width = `${panchang.karana.progress}%`;
         document.getElementById('karanaProgressLabel').textContent = `${panchang.karana.progress}% Complete`;
     } else {

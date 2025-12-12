@@ -26,7 +26,8 @@ function formatTimeIST(date) {
  */
 function getPlanetaryPositions(dateStr) {
   const [year, month, day] = dateStr.split('-').map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+  // Use noon IST for calculations (6:30 AM UTC = 12:00 PM IST)
+  const date = new Date(Date.UTC(year, month - 1, day, 6, 30, 0));
   
   // Get tropical longitudes
   const sunEcl = Astronomy.Ecliptic(Astronomy.GeoVector('Sun', date, true));
@@ -44,7 +45,8 @@ function getPlanetaryPositions(dateStr) {
   return {
     sun: { longitude: sunLong },
     moon: { longitude: moonLong },
-    ayanamsa
+    ayanamsa,
+    observationDate: date  // Add observation date for time calculations
   };
 }
 
@@ -54,7 +56,7 @@ function getPlanetaryPositions(dateStr) {
  * Range: 1-30 (15 Sukla Paksha + 15 Krishna Paksha)
  * Includes end time calculation
  */
-function calculateTithi(sunLong, moonLong) {
+function calculateTithi(sunLong, moonLong, observationDate) {
   let diff = (moonLong - sunLong + 360) % 360;
   const tithiNum = Math.floor(diff / 12) + 1;
   
@@ -82,6 +84,26 @@ function calculateTithi(sunLong, moonLong) {
   const hoursUntilChange = degToNextTithi / moonSpeed;
   const minutesUntilChange = Math.round(hoursUntilChange * 60);
   
+  // Calculate start and end times in IST using observationDate as reference
+  const endTime = new Date(observationDate.getTime() + minutesUntilChange * 60 * 1000);
+  
+  // Total tithi duration (12 degrees / moonSpeed)
+  const totalTithiMinutes = (12 / moonSpeed) * 60;
+  const elapsedMinutes = (progress / 100) * totalTithiMinutes;
+  const startTime = new Date(observationDate.getTime() - elapsedMinutes * 60 * 1000);
+  
+  // Helper to format time with day indicator
+  function formatTimeWithDay(date, referenceDate) {
+    const formatted = formatIST(date);
+    const dateDay = date.getDate();
+    const refDay = referenceDate.getDate();
+    if (dateDay !== refDay) {
+      if (dateDay > refDay) return `${formatted} (+1)`;
+      if (dateDay < refDay) return `${formatted} (-1)`;
+    }
+    return formatted;
+  }
+  
   // Special tithis (Ekadashi fasting days)
   const isEkadashi = tithiNum === 11 || tithiNum === 26;
   
@@ -91,6 +113,9 @@ function calculateTithi(sunLong, moonLong) {
     paksha,
     progress,
     minutesRemaining: minutesUntilChange,
+    startTime: formatTimeWithDay(startTime, observationDate),
+    endTime: formatTimeWithDay(endTime, observationDate),
+    durationMinutes: Math.round(totalTithiMinutes),
     isSpecial: isEkadashi,
     specialNote: isEkadashi ? 'ஏகாதசி விரதம் (Ekadashi Fasting)' : null
   };
@@ -101,7 +126,7 @@ function calculateTithi(sunLong, moonLong) {
  * Formula: Nakshatra = Floor(Moon° / 13.333) + 1
  * Range: 1-27
  */
-function calculateNakshatra(moonLong) {
+function calculateNakshatra(moonLong, observationDate) {
   const nakshatraNum = Math.floor(moonLong / 13.33333333) + 1;
   
   const nakshatras = [
@@ -138,12 +163,32 @@ function calculateNakshatra(moonLong) {
   const progress = Math.round(((moonLong % 13.33333333) / 13.33333333) * 100);
   
   // Calculate transition to next nakshatra
-  const nextNakshatraStart = (nakshatraNum % 27 + 1) * 13.33333333;
-  const degToNextNak = (nextNakshatraStart - moonLong + 360) % 360;
+  const degInCurrentNak = moonLong % 13.33333333;
+  const degToNextNak = 13.33333333 - degInCurrentNak;
   const moonSpeed = 0.549; // degrees per hour
   const hoursUntilChange = degToNextNak / moonSpeed;
   const minutesUntilChange = Math.round(hoursUntilChange * 60);
   const nextNakshatraIndex = nakshatraNum % 27;
+  
+  // Calculate start and end times in IST using observationDate as reference
+  const endTime = new Date(observationDate.getTime() + minutesUntilChange * 60 * 1000);
+  
+  // Total nakshatra duration (13.33 degrees / moonSpeed)
+  const totalNakshatraMinutes = (13.33333333 / moonSpeed) * 60;
+  const elapsedMinutes = (progress / 100) * totalNakshatraMinutes;
+  const startTime = new Date(observationDate.getTime() - elapsedMinutes * 60 * 1000);
+  
+  // Helper to format time with day indicator
+  function formatTimeWithDay(date, referenceDate) {
+    const formatted = formatIST(date);
+    const dateDay = date.getDate();
+    const refDay = referenceDate.getDate();
+    if (dateDay !== refDay) {
+      if (dateDay > refDay) return `${formatted} (+1)`;
+      if (dateDay < refDay) return `${formatted} (-1)`;
+    }
+    return formatted;
+  }
   
   return {
     number: nakshatraNum,
@@ -152,6 +197,9 @@ function calculateNakshatra(moonLong) {
     deity: nakshatra.deity,
     progress,
     minutesUntilChange,
+    startTime: formatTimeWithDay(startTime, observationDate),
+    endTime: formatTimeWithDay(endTime, observationDate),
+    durationMinutes: Math.round(totalNakshatraMinutes),
     nextNakshatra: nakshatras[nextNakshatraIndex].name
   };
 }
@@ -161,7 +209,7 @@ function calculateNakshatra(moonLong) {
  * Formula: Yoga = Floor((Sun° + Moon°) / 13.333) + 1
  * Range: 1-27
  */
-function calculateYoga(sunLong, moonLong) {
+function calculateYoga(sunLong, moonLong, observationDate) {
   const combined = (sunLong + moonLong) % 360;
   const yogaNum = Math.floor(combined / 13.33333333) + 1;
   
@@ -198,11 +246,43 @@ function calculateYoga(sunLong, moonLong) {
   const yoga = yogas[yogaNum - 1];
   const progress = Math.round(((combined % 13.33333333) / 13.33333333) * 100);
   
+  // Calculate yoga transition times
+  // Sun + Moon combined speed ~1.0° per hour
+  const degInCurrentYoga = combined % 13.33333333;
+  const degToNextYoga = 13.33333333 - degInCurrentYoga;
+  const combinedSpeed = 1.0; // approximate combined speed
+  const hoursUntilChange = degToNextYoga / combinedSpeed;
+  const minutesUntilChange = Math.round(hoursUntilChange * 60);
+  
+  // Calculate start and end times in IST using observationDate as reference
+  const endTime = new Date(observationDate.getTime() + minutesUntilChange * 60 * 1000);
+  
+  const totalYogaMinutes = (13.33333333 / combinedSpeed) * 60;
+  const elapsedMinutes = (progress / 100) * totalYogaMinutes;
+  const startTime = new Date(observationDate.getTime() - elapsedMinutes * 60 * 1000);
+  
+  // Helper to format time with next day indicator if crossing midnight
+  function formatTimeWithDay(date, referenceDate) {
+    const formatted = formatIST(date);
+    const dateDay = date.getDate();
+    const refDay = referenceDate.getDate();
+    if (dateDay !== refDay && dateDay > refDay) {
+      return `${formatted} (+1)`;
+    } else if (dateDay !== refDay && dateDay < refDay) {
+      return `${formatted} (-1)`;
+    }
+    return formatted;
+  }
+  
   return {
     number: yogaNum,
     name: yoga.name,
     nature: yoga.nature,
-    progress
+    progress,
+    minutesUntilChange,
+    startTime: formatTimeWithDay(startTime, observationDate),
+    endTime: formatTimeWithDay(endTime, observationDate),
+    durationMinutes: Math.round(totalYogaMinutes)
   };
 }
 
@@ -211,7 +291,7 @@ function calculateYoga(sunLong, moonLong) {
  * Formula: Karana = Floor((Moon° - Sun°) / 6) mod 60
  * Range: 1-60 (11 karanas cycling)
  */
-function calculateKarana(sunLong, moonLong) {
+function calculateKarana(sunLong, moonLong, observationDate) {
   let angle = (moonLong - sunLong + 360) % 360;
   const karanaNum = Math.floor(angle / 6) + 1;
   
@@ -228,10 +308,40 @@ function calculateKarana(sunLong, moonLong) {
   // Vishti (Bhadra) is inauspicious
   const isInauspicious = karanaName.includes('விஷ்டி');
   
+  // Calculate karana transition times
+  const degInCurrentKarana = angle % 6;
+  const degToNextKarana = 6 - degInCurrentKarana;
+  const moonSpeed = 0.549; // degrees per hour
+  const hoursUntilChange = degToNextKarana / moonSpeed;
+  const minutesUntilChange = Math.round(hoursUntilChange * 60);
+  
+  // Calculate start and end times in IST using observationDate as reference
+  const endTime = new Date(observationDate.getTime() + minutesUntilChange * 60 * 1000);
+  
+  const totalKaranaMinutes = (6 / moonSpeed) * 60;
+  const elapsedMinutes = (progress / 100) * totalKaranaMinutes;
+  const startTime = new Date(observationDate.getTime() - elapsedMinutes * 60 * 1000);
+  
+  // Helper to format time with day indicator
+  function formatTimeWithDay(date, referenceDate) {
+    const formatted = formatIST(date);
+    const dateDay = date.getDate();
+    const refDay = referenceDate.getDate();
+    if (dateDay !== refDay) {
+      if (dateDay > refDay) return `${formatted} (+1)`;
+      if (dateDay < refDay) return `${formatted} (-1)`;
+    }
+    return formatted;
+  }
+  
   return {
     number: karanaNum,
     name: karanaName,
     progress,
+    minutesUntilChange,
+    startTime: formatTimeWithDay(startTime, observationDate),
+    endTime: formatTimeWithDay(endTime, observationDate),
+    durationMinutes: Math.round(totalKaranaMinutes),
     nature: isInauspicious ? 'அசுபம் (Inauspicious)' : 'சுபம் (Auspicious)'
   };
 }
@@ -310,12 +420,13 @@ function calculateCompletePanchang(dateStr, timezone = 5.5) {
   try {
     // Get planetary positions
     const planets = getPlanetaryPositions(dateStr);
+    const observationDate = planets.observationDate;
     
-    // Calculate all Vedic elements
-    const tithi = calculateTithi(planets.sun.longitude, planets.moon.longitude);
-    const nakshatra = calculateNakshatra(planets.moon.longitude);
-    const yoga = calculateYoga(planets.sun.longitude, planets.moon.longitude);
-    const karana = calculateKarana(planets.sun.longitude, planets.moon.longitude);
+    // Calculate all Vedic elements with observation date
+    const tithi = calculateTithi(planets.sun.longitude, planets.moon.longitude, observationDate);
+    const nakshatra = calculateNakshatra(planets.moon.longitude, observationDate);
+    const yoga = calculateYoga(planets.sun.longitude, planets.moon.longitude, observationDate);
+    const karana = calculateKarana(planets.sun.longitude, planets.moon.longitude, observationDate);
     const nallaNeram = calculateNallaNeram(dateStr, timezone);
     
     return {
