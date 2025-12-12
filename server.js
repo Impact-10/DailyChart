@@ -3,6 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const { calculateDailyChart, CITIES } = require('./astroService');
 const { calculateAuspiciousTimes } = require('./auspiciousTimesService');
+const { calculateCompletePanchang } = require('./panchangService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -48,6 +49,56 @@ app.get('/api/auspicious-times', (req, res) => {
     
   } catch (error) {
     console.error('Error calculating auspicious times:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// NEW: Complete Panchang API endpoint (Tithi, Nakshatra, Yoga, Karana, Nalla Neram)
+app.get('/api/panchang', (req, res) => {
+  try {
+    const { date, city = 'Chennai' } = req.query;
+    
+    if (!date) {
+      return res.status(400).json({ error: 'Date parameter is required' });
+    }
+    
+    // Get city timezone
+    const cityData = CITIES[city] || CITIES.Chennai;
+    
+    // Calculate complete panchang
+    const panchangData = calculateCompletePanchang(date, cityData.tz);
+    
+    // Also get auspicious times (Rahu Kaal, Yamaganda) for integration
+    const auspiciousData = calculateAuspiciousTimes(date, city);
+    
+    // Combine all data
+    res.json({
+      date,
+      city,
+      sunrise: auspiciousData.sunrise,
+      sunset: auspiciousData.sunset,
+      sunriseSource: auspiciousData.sunriseSource,
+      
+      // Vedic Panchang Elements
+      tithi: panchangData.tithi,
+      nakshatra: panchangData.nakshatra,
+      yoga: panchangData.yoga,
+      karana: panchangData.karana,
+      nallaNeram: panchangData.nallaNeram,
+      
+      // Inauspicious Times
+      rahuKaal: auspiciousData.rahuKaal,
+      yamaganda: auspiciousData.yamaganda,
+      
+      // Metadata
+      ayanamsa: panchangData.ayanamsa,
+      calculatedAt: panchangData.calculatedAt,
+      timezone: 'Asia/Kolkata (IST)',
+      serverTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+    });
+    
+  } catch (error) {
+    console.error('Error calculating panchang:', error);
     res.status(500).json({ error: error.message });
   }
 });

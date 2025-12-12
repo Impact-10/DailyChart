@@ -228,6 +228,51 @@ body {
     border-color: var(--color-accent);
 }
 
+/* =====================================================
+   Clock Display
+   ===================================================== */
+
+.clock-display {
+    display: flex;
+    gap: 2rem;
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-accent) 100%);
+    border-radius: 8px;
+    border-left: 4px solid var(--color-accent);
+    align-items: center;
+    justify-content: center;
+}
+
+.clock-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.clock-label {
+    font-size: 12px;
+    color: var(--color-text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    font-weight: 600;
+}
+
+.clock-time {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--color-accent);
+    font-family: 'Courier New', monospace;
+    letter-spacing: 1px;
+    animation: clockPulse 1s ease-in-out infinite;
+}
+
+@keyframes clockPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+}
+
 .form-input option {
     background-color: var(--bg-secondary);
     color: var(--color-text);
@@ -1581,5 +1626,279 @@ body {
     
     .nav-btn-today span {
         display: block;
+    }
+}
+
+/* =====================================================
+   Panchang Section Styles
+   ===================================================== */
+
+.panchang-section {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 2px solid var(--color-border);
+}
+
+.section-subtitle {
+    font-size: 0.85rem;
+    color: var(--color-text-light);
+    font-weight: 400;
+    margin-left: 0.5rem;
+}
+
+.panchang-card {
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-accent) 100%);
+}
+
+.panchang-card .card-header {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+/* Icon Styles */
+.tithi-icon svg path {
+    transition: all 0.3s ease;
+}
+
+.nakshatra-icon svg path {
+    animation: starPulse 2s ease-in-out infinite;
+}
+
+@keyframes starPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+.yoga-icon svg {
+    animation: yogaRotate 4s linear infinite;
+}
+
+@keyframes yogaRotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.karana-icon svg circle {
+    animation: karanaPulse 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes karanaPulse {
+    from { r: 2; }
+    to { r: 2.5; }
+}
+
+.nalla-neram-icon svg path {
+    animation: clockTick 2s ease-in-out infinite;
+}
+
+@keyframes clockTick {
+    0%, 100% { transform-origin: 16px 16px; transform: rotate(0deg); }
+    50% { transform: rotate(30deg); }
+}
+
+/* Panchang Content */
+.panchang-content {
+    padding: 1.5rem 0 0;
+}
+
+.panchang-main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.panchang-number {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--color-accent);
+    line-height: 1;
+}
+
+.panchang-name {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--color-text);
+    text-align: center;
+}
+
+.panchang-paksha {
+    font-size: 0.9rem;
+    color: var(--color-text-light);
+    font-style: italic;
+}
+
+.panchang-details {
+    display: flex;
+    gap: 1.5rem;
+    font-size: 0.9rem;
+    color: var(--color-text-light);
+    margin-top: 0.5rem;
+}
+
+.panchang-details strong {
+    color: var(--color-text);
+}
+
+.yoga-nature,
+.karana-nature {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-top: 0.25rem;
+}
+
+.yoga-nature.auspicious,
+.karana-nature.auspicious {
+    background-color: rgba(34, 139, 34, 0.15);
+    color: #228B22;
+}
+
+.yoga-nature.inauspicious,
+.karana-nature.inauspicious {
+    background-color: rgba(220, 20, 60, 0.15);
+    color: #DC143C;
+}
+
+/* Progress Bar */
+.progress-container {
+    margin-top: 1rem;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background-color: var(--bg-accent);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-accent), var(--color-accent-alt));
+    border-radius: 4px;
+    transition: width 0.5s ease;
+    position: relative;
+}
+
+.progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    animation: progressShine 2s ease-in-out infinite;
+}
+
+@keyframes progressShine {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.progress-label {
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--color-text-light);
+    margin-top: 0.5rem;
+    font-weight: 600;
+}
+
+/* Special Note */
+.special-note {
+    background-color: rgba(255, 215, 0, 0.2);
+    border-left: 4px solid #FFD700;
+    padding: 0.75rem 1rem;
+    margin-top: 1rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    color: var(--color-text);
+    font-weight: 600;
+}
+
+.special-note::before {
+    content: '⭐ ';
+    margin-right: 0.5rem;
+}
+
+/* Nalla Neram */
+.nalla-neram-day {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--color-accent);
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.nalla-neram-windows {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.nalla-neram-window {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background-color: rgba(34, 139, 34, 0.1);
+    border-left: 4px solid #228B22;
+    border-radius: 6px;
+}
+
+.window-period {
+    font-weight: 600;
+    color: #228B22;
+    font-size: 0.9rem;
+}
+
+.window-time {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.window-duration {
+    font-size: 0.85rem;
+    color: var(--color-text-light);
+}
+
+/* Responsive Panchang */
+@media (max-width: 768px) {
+    .panchang-number {
+        font-size: 2rem;
+    }
+    
+    .panchang-name {
+        font-size: 1.1rem;
+    }
+    
+    .panchang-details {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: center;
+    }
+    
+    .nalla-neram-window {
+        flex-direction: column;
+        gap: 0.5rem;
+        text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .section-subtitle {
+        display: block;
+        margin-left: 0;
+        margin-top: 0.25rem;
+    }
+    
+    .panchang-number {
+        font-size: 1.75rem;
     }
 }

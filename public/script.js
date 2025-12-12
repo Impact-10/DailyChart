@@ -52,6 +52,44 @@ function getAPIBaseURL() {
 
 const API_BASE_URL = getAPIBaseURL();
 
+/**
+ * Get current time in IST
+ */
+function getCurrentTimeIST() {
+    const now = new Date();
+    const istTime = now.toLocaleString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+        timeZone: 'Asia/Kolkata'
+    });
+    return istTime;
+}
+
+/**
+ * Update live clock display every second
+ */
+function updateLiveClock() {
+    const liveTimeEl = document.getElementById('liveTime');
+    if (liveTimeEl) {
+        liveTimeEl.textContent = getCurrentTimeIST();
+    }
+}
+
+/**
+ * Update calculation time display
+ */
+function updateCalcTime() {
+    const timeInput = document.getElementById('time');
+    const calcTimeEl = document.getElementById('calcTime');
+    if (timeInput && calcTimeEl && timeInput.value) {
+        const [hours, minutes] = timeInput.value.split(':');
+        console.log(`⏰ Updated Calculate Time: ${hours}:${minutes}:00`);
+        calcTimeEl.textContent = `${hours}:${minutes}:00`;
+    }
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize theme toggle
@@ -74,14 +112,38 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // Set today's date and default time
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('date').value = today;
+    // Set current date (IST timezone)
+    const now = new Date();
+    const istDate = now.toLocaleString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour12: false,
+        timeZone: 'Asia/Kolkata'
+    }).split(',')[0];
+    const [month, day, year] = istDate.split('/');
+    const dateStr = `${year}-${month}-${day}`;
+    document.getElementById('date').value = dateStr;
     
-    // Set default time if not already set
-    if (!document.getElementById('time').value) {
-        document.getElementById('time').value = '05:30';
-    }
+    // Set current time in IST (without seconds)
+    const istTime = now.toLocaleString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        timeZone: 'Asia/Kolkata'
+    });
+    document.getElementById('time').value = istTime;
+    
+    // Start live clock update
+    updateLiveClock();
+    updateCalcTime();
+    setInterval(updateLiveClock, 1000);
+    
+    // Update calc time when time input changes
+    document.getElementById('time')?.addEventListener('change', updateCalcTime);
+    
+    // Auto-load chart on page load
+    loadChart();
     
     // Load chart on button click
     document.getElementById('showChart').addEventListener('click', loadChart);
@@ -109,14 +171,26 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function loadChart() {
-    const date = document.getElementById('date').value;
-    const time = document.getElementById('time').value;
-    const city = document.getElementById('city').value;
+    const dateInput = document.getElementById('date');
+    const timeInput = document.getElementById('time');
+    const cityInput = document.getElementById('city');
     
-    if (!date) {
-        showError('Please select a date');
+    const date = dateInput.value;
+    const time = timeInput.value;
+    const city = cityInput.value;
+    
+    if (!date || !time) {
+        showError('Please select date and time');
         return;
     }
+    
+    // Update calculate time display IMMEDIATELY
+    updateCalcTime();
+    
+    console.log(`\n${'═'.repeat(70)}`);
+    console.log(`%c📊 LOADING CHART & PANCHANG FOR: ${date} @ ${time} IST`, 'color: #d4a574; font-weight: bold; font-size: 13px');
+    console.log(`%c   City: ${city}`, 'color: #333; font-size: 12px');
+    console.log(`${'═'.repeat(70)}\n`);
     
     // Hide previous results and show loading
     const emptyState = document.getElementById('emptyState');
@@ -299,23 +373,107 @@ let currentAuspiciousDate = null;
 
 async function loadAuspiciousTimes(dateStr, cityName) {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/auspicious-times?date=${dateStr}&city=${cityName}`);
+        // Use new panchang endpoint that includes both auspicious times and panchang data
+        const response = await fetch(`${API_BASE_URL}/api/panchang?date=${dateStr}&city=${cityName}`);
         
         if (!response.ok) {
-            throw new Error('Failed to load auspicious times');
+            throw new Error('Failed to load auspicious times and panchang');
         }
         
         const data = await response.json();
+        
+        // ========== COMPREHENSIVE DEBUGGING ==========
+        console.clear();
+        console.log('%c═══════════════════════════════════════════════════════════', 'color: #d4a574; font-weight: bold');
+        console.log('%c         COMPLETE PANCHANG DATA DEBUG           ', 'color: #d4a574; font-weight: bold; font-size: 14px');
+        console.log('%c═══════════════════════════════════════════════════════════', 'color: #d4a574; font-weight: bold');
+        
+        // Metadata
+        console.group('%c📅 METADATA', 'color: #333; font-weight: bold; font-size: 12px');
+        console.log('Date:', data.date);
+        console.log('City:', data.city);
+        console.log('Timezone:', data.timezone);
+        console.log('Sunrise:', data.sunrise);
+        console.log('Sunset:', data.sunset);
+        console.log('Ayanamsa:', data.ayanamsa);
+        console.groupEnd();
+        
+        // TITHI
+        console.group('%c🌙 TITHI (Lunar Day)', 'color: #d4a574; font-weight: bold; font-size: 12px; background: #f5f1e8; padding: 4px');
+        console.log('Number:', `${data.tithi.number}/30`);
+        console.log('Name (Tamil):', data.tithi.name);
+        console.log('Paksha:', data.tithi.paksha);
+        console.log('Progress:', `${data.tithi.progress}%`);
+        console.log('Minutes Remaining:', data.tithi.minutesRemaining, 'mins');
+        console.log('Is Special:', data.tithi.isSpecial);
+        if (data.tithi.isSpecial) console.log('Special Note:', data.tithi.specialNote);
+        console.groupEnd();
+        
+        // NAKSHATRA
+        console.group('%c⭐ NAKSHATRA (Lunar Mansion)', 'color: #4a90a4; font-weight: bold; font-size: 12px; background: #e8f4f8; padding: 4px');
+        console.log('Number:', `${data.nakshatra.number}/27`);
+        console.log('Name (Tamil):', data.nakshatra.name);
+        console.log('Lord:', data.nakshatra.lord);
+        console.log('Deity:', data.nakshatra.deity);
+        console.log('Progress:', `${data.nakshatra.progress}%`);
+        console.log('Minutes Until Change:', data.nakshatra.minutesUntilChange, 'mins');
+        console.log('Next Nakshatra:', data.nakshatra.nextNakshatra);
+        console.groupEnd();
+        
+        // YOGA
+        console.group('%c🔗 YOGA (Sun-Moon Combination)', 'color: #e88d3a; font-weight: bold; font-size: 12px; background: #fef4e8; padding: 4px');
+        console.log('Number:', `${data.yoga.number}/27`);
+        console.log('Name (Tamil):', data.yoga.name);
+        console.log('Nature:', data.yoga.nature);
+        console.log('Progress:', `${data.yoga.progress}%`);
+        console.groupEnd();
+        
+        // KARANA
+        console.group('%c⏱️  KARANA (Half-Tithi)', 'color: #8b6ba8; font-weight: bold; font-size: 12px; background: #f0e8f8; padding: 4px');
+        console.log('Number:', `${data.karana.number}/60`);
+        console.log('Name (Tamil):', data.karana.name);
+        console.log('Nature:', data.karana.nature);
+        console.log('Progress:', `${data.karana.progress}%`);
+        console.groupEnd();
+        
+        // NALLA NERAM
+        console.group('%c✓ NALLA NERAM (Auspicious Times)', 'color: #4caf50; font-weight: bold; font-size: 12px; background: #e8f5e9; padding: 4px');
+        console.log('Day:', data.nallaNeram.day);
+        console.log('Windows:', data.nallaNeram.windows);
+        data.nallaNeram.windows.forEach((w, i) => {
+            console.log(`  Window ${i+1}:`, w.start, '-', w.end, `(${w.duration})`);
+        });
+        console.groupEnd();
+        
+        // RAHU KAAL
+        console.group('%c🔴 RAHU KAAL (Inauspicious)', 'color: #d32f2f; font-weight: bold; font-size: 12px; background: #ffebee; padding: 4px');
+        console.log('Time:', data.rahuKaal.startTime, '-', data.rahuKaal.endTime);
+        console.log('Duration:', data.rahuKaal.duration);
+        console.log('Day:', data.rahuKaal.day);
+        console.groupEnd();
+        
+        // YAMAGANDA
+        console.group('%c⚡ YAMAGANDA (Inauspicious)', 'color: #ff9800; font-weight: bold; font-size: 12px; background: #fff3e0; padding: 4px');
+        console.log('Day Period:', data.yamaganda.dayPeriod.startTime, '-', data.yamaganda.dayPeriod.endTime);
+        console.log('Night Period:', data.yamaganda.nightPeriod.startTime, '-', data.yamaganda.nightPeriod.endTime);
+        console.log('Ghatikas:', data.yamaganda.ghatikas.length);
+        console.groupEnd();
+        
+        console.log('%c═══════════════════════════════════════════════════════════', 'color: #d4a574; font-weight: bold');
+        console.log('%c✅ ALL VALUES LOGGED - Check above for details', 'color: #4caf50; font-weight: bold; font-size: 12px');
+        console.log('%c═══════════════════════════════════════════════════════════', 'color: #d4a574; font-weight: bold');
+        
         currentAuspiciousDate = dateStr;
         
         // Update UI
         renderAuspiciousTimes(data);
+        renderPanchang(data);
         
         // Show the auspicious times section
         document.getElementById('auspiciousTimesContainer').style.display = 'block';
         
     } catch (error) {
-        console.error('Error loading auspicious times:', error);
+        console.error('Error loading auspicious times and panchang:', error);
     }
 }
 
@@ -469,8 +627,175 @@ function changeDate(direction) {
     loadChart();
 }
 
+// Panchang Rendering Function
+// =====================================================
+
+function renderPanchang(panchang) {
+    if (!panchang) {
+        console.error('❌ [PANCHANG RENDER] No panchang data received');
+        return;
+    }
+    
+    console.log('%c🎨 PANCHANG RENDERING START', 'color: #333; font-weight: bold; font-size: 12px');
+    
+    // Render Tithi
+    if (panchang.tithi) {
+        console.log('%c   📖 TITHI RENDERED', 'color: #d4a574');
+        console.log('      →', panchang.tithi.number + '/30 -', panchang.tithi.name);
+        console.log('      → Progress:', panchang.tithi.progress + '%');
+        console.log('      → Mins Remaining:', panchang.tithi.minutesRemaining);
+        document.getElementById('tithiNumber').textContent = `${panchang.tithi.number}/30`;
+        document.getElementById('tithiName').textContent = panchang.tithi.name;
+        document.getElementById('tithiPaksha').textContent = panchang.tithi.paksha;
+        document.getElementById('tithiProgress').style.width = `${panchang.tithi.progress}%`;
+        document.getElementById('tithiProgressLabel').textContent = `${panchang.tithi.progress}% Complete (${panchang.tithi.minutesRemaining} min remaining)`;
+        
+        // Show special note for Ekadashi or other special tithis
+        const tithiSpecial = document.getElementById('tithiSpecial');
+        if (panchang.tithi.isSpecial) {
+            tithiSpecial.textContent = panchang.tithi.specialNote;
+            tithiSpecial.style.display = 'block';
+            console.log('      ⭐ SPECIAL:', panchang.tithi.specialNote);
+        } else {
+            tithiSpecial.style.display = 'none';
+        }
+        
+        // Update Tithi moon icon based on phase
+        updateTithiMoonIcon(panchang.tithi.number);
+    } else {
+        console.error('❌ [TITHI] Missing tithi data');
+    }
+    
+    // Render Nakshatra
+    if (panchang.nakshatra) {
+        console.log('%c   ⭐ NAKSHATRA RENDERED', 'color: #4a90a4');
+        console.log('      →', panchang.nakshatra.number + '/27 -', panchang.nakshatra.name);
+        console.log('      → Lord:', panchang.nakshatra.lord, '| Deity:', panchang.nakshatra.deity);
+        console.log('      → Mins Until Change:', panchang.nakshatra.minutesUntilChange, '→ Next:', panchang.nakshatra.nextNakshatra);
+        document.getElementById('nakshatraNumber').textContent = `${panchang.nakshatra.number}/27`;
+        document.getElementById('nakshatraName').textContent = panchang.nakshatra.name;
+        document.getElementById('nakshatraLord').textContent = panchang.nakshatra.lord;
+        document.getElementById('nakshatraDeity').textContent = panchang.nakshatra.deity;
+        document.getElementById('nakshatraProgress').style.width = `${panchang.nakshatra.progress}%`;
+        document.getElementById('nakshatraProgressLabel').textContent = `${panchang.nakshatra.progress}% Complete (${panchang.nakshatra.minutesUntilChange} min until ${panchang.nakshatra.nextNakshatra.split('(')[0]})`;
+    } else {
+        console.error('❌ [NAKSHATRA] Missing nakshatra data');
+    }
+    
+    // Render Yoga
+    if (panchang.yoga) {
+        console.log('%c   🔗 YOGA RENDERED', 'color: #e88d3a');
+        console.log('      →', panchang.yoga.number + '/27 -', panchang.yoga.name);
+        console.log('      → Nature:', panchang.yoga.nature, '| Progress:', panchang.yoga.progress + '%');
+        document.getElementById('yogaNumber').textContent = `${panchang.yoga.number}/27`;
+        document.getElementById('yogaName').textContent = panchang.yoga.name;
+        const yogaNature = document.getElementById('yogaNature');
+        yogaNature.textContent = panchang.yoga.nature;
+        yogaNature.className = 'yoga-nature ' + (panchang.yoga.nature.includes('சுபம்') || panchang.yoga.nature.includes('Auspicious') ? 'auspicious' : 'inauspicious');
+        document.getElementById('yogaProgress').style.width = `${panchang.yoga.progress}%`;
+        document.getElementById('yogaProgressLabel').textContent = `${panchang.yoga.progress}% Complete`;
+    } else {
+        console.error('❌ [YOGA] Missing yoga data');
+    }
+    
+    // Render Karana
+    if (panchang.karana) {
+        console.log('%c   ⏱️  KARANA RENDERED', 'color: #8b6ba8');
+        console.log('      →', panchang.karana.number + '/60 -', panchang.karana.name);
+        console.log('      → Nature:', panchang.karana.nature, '| Progress:', panchang.karana.progress + '%');
+        document.getElementById('karanaNumber').textContent = `${panchang.karana.number}/60`;
+        document.getElementById('karanaName').textContent = panchang.karana.name;
+        const karanaNature = document.getElementById('karanaNature');
+        karanaNature.textContent = panchang.karana.nature;
+        karanaNature.className = 'karana-nature ' + (panchang.karana.nature.includes('சுபம்') || panchang.karana.nature.includes('Auspicious') ? 'auspicious' : 'inauspicious');
+        document.getElementById('karanaProgress').style.width = `${panchang.karana.progress}%`;
+        document.getElementById('karanaProgressLabel').textContent = `${panchang.karana.progress}% Complete`;
+    } else {
+        console.error('❌ [KARANA] Missing karana data');
+    }
+    
+    // Render Nalla Neram
+    if (panchang.nallaNeram) {
+        console.log('%c   ✓ NALLA NERAM RENDERED', 'color: #4caf50');
+        console.log('      → Day:', panchang.nallaNeram.day);
+        document.getElementById('nallaneramDay').textContent = panchang.nallaNeram.day;
+        const windowsContainer = document.getElementById('nallaneramWindows');
+        windowsContainer.innerHTML = '';
+        
+        panchang.nallaNeram.windows.forEach((window, index) => {
+            console.log(`      → Window ${index + 1}:`, window.start, '-', window.end, '(' + window.duration + ')');
+            const windowDiv = document.createElement('div');
+            windowDiv.className = 'nalla-neram-window';
+            windowDiv.innerHTML = `
+                <div>
+                    <div class="window-period">${window.period}</div>
+                    <div class="window-time">${window.start} - ${window.end}</div>
+                </div>
+                <div class="window-duration">${window.duration}</div>
+            `;
+            windowsContainer.appendChild(windowDiv);
+        });
+    } else {
+        console.error('❌ [NALLA NERAM] Missing nalla neram data');
+    }
+    
+    console.log('%c✅ PANCHANG RENDERING COMPLETE', 'color: #4caf50; font-weight: bold; font-size: 12px');
+}
+
+// Update Tithi Moon Icon based on lunar phase
+function updateTithiMoonIcon(tithiNumber) {
+    const moonPath = document.getElementById('tithiMoonPath');
+    if (!moonPath) return;
+    
+    // Calculate moon phase (0 = New Moon, 15 = Full Moon, 30 = New Moon)
+    const phase = tithiNumber <= 15 ? tithiNumber : 30 - tithiNumber;
+    
+    // Calculate the arc parameters for the moon shape
+    // Phase 0 = completely dark (new moon)
+    // Phase 15 = completely light (full moon)
+    const percentage = phase / 15;
+    
+    if (percentage < 0.5) {
+        // Waxing crescent to first quarter
+        const bulge = percentage * 2; // 0 to 1
+        const offset = 12 * (1 - bulge);
+        moonPath.setAttribute('d', `M16 4 A12 12 0 0 1 16 28 A${offset} 12 0 0 1 16 4`);
+    } else {
+        // First quarter to full moon
+        const bulge = (percentage - 0.5) * 2; // 0 to 1
+        const offset = 12 * bulge;
+        moonPath.setAttribute('d', `M16 4 A12 12 0 0 1 16 28 A${offset} 12 0 0 0 16 4`);
+    }
+}
+
 // Initialize day navigation buttons
 document.addEventListener('DOMContentLoaded', () => {
+    // Set current date
+    const today = new Date();
+    const dateStr = today.toISOString().split('T')[0];
+    document.getElementById('date').value = dateStr;
+    
+    // Set current time (IST)
+    const istTime = today.toLocaleString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        timeZone: 'Asia/Kolkata'
+    });
+    const [hours, minutes] = istTime.split(':');
+    document.getElementById('time').value = `${hours}:${minutes}`;
+    
+    console.log(`📅 Initialized with: ${dateStr} at ${hours}:${minutes} IST`);
+    
+    // Load chart
+    loadChart();
+    
+    // Add event listeners
+    document.getElementById('date')?.addEventListener('change', loadChart);
+    document.getElementById('time')?.addEventListener('change', loadChart);
+    document.getElementById('city')?.addEventListener('change', loadChart);
+    document.getElementById('showChart')?.addEventListener('click', loadChart);
+    
     document.getElementById('prevDay')?.addEventListener('click', () => changeDate('prev'));
     document.getElementById('nextDay')?.addEventListener('click', () => changeDate('next'));
     document.getElementById('todayBtn')?.addEventListener('click', () => changeDate('today'));
