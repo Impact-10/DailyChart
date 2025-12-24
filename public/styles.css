@@ -63,6 +63,125 @@ body {
 }
 
 /* =====================================================
+   Tamil Calendar
+   ===================================================== */
+
+.tamil-calendar-section {
+    margin-top: 2rem;
+}
+
+.tamil-calendar-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: 0.75rem 0 1rem;
+}
+
+.tamil-calendar-month {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.tamil-calendar-meta {
+    font-size: 13px;
+    color: var(--color-text-light);
+    text-align: right;
+}
+
+.tamil-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.5rem;
+}
+
+.tamil-calendar-weekday {
+    padding: 0.5rem;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-light);
+    text-align: center;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: var(--bg-secondary);
+}
+
+.tamil-calendar-cell {
+    padding: 0.6rem 0.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    background: var(--bg-secondary);
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    min-height: 74px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.tamil-calendar-cell:hover {
+    border-color: var(--color-accent);
+}
+
+.tamil-calendar-cell--empty {
+    background: transparent;
+    border: 1px dashed var(--color-border);
+    box-shadow: none;
+    cursor: default;
+}
+
+.tamil-calendar-dayrow {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.tamil-calendar-gregday {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.tamil-calendar-tamilday {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-light);
+}
+
+.tamil-calendar-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.tamil-calendar-tag {
+    font-size: 11px;
+    padding: 0.12rem 0.4rem;
+    border-radius: 999px;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-light);
+    background: var(--bg-accent);
+}
+
+.tamil-calendar-details {
+    padding: 0.5rem 0;
+    color: var(--color-text);
+    font-size: 13px;
+}
+
+.tamil-calendar-details pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    background: var(--bg-accent);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+/* =====================================================
    Layout Structure
    ===================================================== */
 

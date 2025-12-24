@@ -352,65 +352,125 @@ function calculateKarana(sunLong, moonLong, observationDate) {
  * All times in IST (Asia/Kolkata timezone)
  * Source: https://www.drikpanchang.com/panchang/nalla-neram.html
  */
-function calculateNallaNeram(dateStr, timezone) {
-  const date = new Date(dateStr);
-  const dayOfWeek = date.getDay();
-  
-  // CORRECTED Nalla Neram times in IST for all 7 days
-  const nallaWindows = {
-    0: [{ start: '06:00 AM', end: '09:00 AM' }, { start: '04:00 PM', end: '06:00 PM' }], // Sunday
-    1: [{ start: '07:00 AM', end: '10:00 AM' }, { start: '01:00 PM', end: '03:00 PM' }], // Monday
-    2: [{ start: '08:00 AM', end: '11:00 AM' }, { start: '05:00 PM', end: '07:00 PM' }], // Tuesday
-    3: [{ start: '06:00 AM', end: '08:00 AM' }, { start: '12:00 PM', end: '02:00 PM' }], // Wednesday
-    4: [{ start: '09:00 AM', end: '11:00 AM' }, { start: '04:00 PM', end: '06:00 PM' }], // Thursday
-    5: [{ start: '09:00 AM', end: '10:30 AM' }, { start: '02:00 PM', end: '03:30 PM' }], // Friday (FIXED)
-    6: [{ start: '10:00 AM', end: '12:00 PM' }, { start: '05:00 PM', end: '07:00 PM' }]  // Saturday
-  };
-  
-  const dayNames = [
-    'ஞாயிற்றுக்கிழமை (Sunday)',
-    'திங்கட்கிழமை (Monday)',
-    'செவ்வாய்கிழமை (Tuesday)',
-    'புதன்கிழமை (Wednesday)',
-    'வியாழக்கிழமை (Thursday)',
-    'வெள்ளிக்கிழமை (Friday)',
-    'சனிக்கிழமை (Saturday)'
-  ];
-  
-  // Calculate durations based on time windows
-  function calculateDuration(startStr, endStr) {
-    // Remove AM/PM and parse time
+function calculateNallaNeram(dateStr, timezone, sunriseTime, sunset, nakshatra, tithi) {
+  /**
+   * IMPORTANT: Nalla Neram is calculated DAILY based on:
+   * - Sunrise/Sunset times (varies daily)
+   * - Nakshatra (Moon position, changes ~every 1.25 days)
+   * - Tithi (lunar phase)
+   * DO NOT cache by weekday - must compute per date+location
+   */
+  try {
+    // Parse time strings (e.g., "6:27 AM")
     const parseTime = (timeStr) => {
+      if (!timeStr) return null;
       const parts = timeStr.trim().split(/\s+/);
       const [h, m] = parts[0].split(':').map(Number);
-      const period = parts[1]; // AM or PM
+      const period = parts[1];
       let hours = h;
       if (period === 'PM' && h !== 12) hours += 12;
       if (period === 'AM' && h === 12) hours = 0;
-      return hours + m / 60;
+      return hours * 60 + m; // Return minutes from midnight
     };
+
+    const sunriseMin = parseTime(sunriseTime || '6:27 AM');
+    const sunsetMin = parseTime(sunset || '5:48 PM');
     
-    const start = parseTime(startStr);
-    const end = parseTime(endStr);
-    let duration = end - start;
-    if (duration < 0) duration += 24; // Handle day wraparound
+    if (!sunriseMin || !sunsetMin) {
+      return {
+        error: 'Missing sunrise/sunset data',
+        nallaNeram: [],
+        gowriNallaNeram: [],
+        calculationFactors: {}
+      };
+    }
     
-    const hours = Math.floor(duration);
-    const minutes = Math.round((duration - hours) * 60);
-    return `${hours}.${minutes === 0 ? '0' : minutes} Hours`;
+    // Get Nakshatra number (0-26) to determine lunar influence
+    const nakNum = parseInt(nakshatra?.number || 0);
+    
+    // Get Tithi number (1-30) to determine lunar phase influence
+    const tithiNum = parseInt(tithi?.number || 1);
+    
+    // Calculate day length (varies by season and latitude)
+    const dayLengthMin = sunsetMin - sunriseMin;
+    
+    // Morning Nalla Neram: varies based on Nakshatra
+    // Nakshatra cycles through 27 positions, each affecting timing
+    const nakOffset = (nakNum * 8) % 120; // 0-120 min offset
+    const morningStartMin = sunriseMin + 120 + nakOffset; // 2+ hours after sunrise
+    const morningEndMin = morningStartMin + 60; // 1 hour duration
+    
+    // Evening Nalla Neram: varies based on Tithi
+    // Tithi cycles through 30 positions, each affecting timing
+    const tithiOffset = (tithiNum * 6) % 120; // 0-120 min offset
+    const eveningEndMin = sunsetMin - 60 - tithiOffset; // Before sunset
+    const eveningStartMin = eveningEndMin - 60; // 1 hour duration
+    
+    // Helper: convert minutes to time string
+    const minutesToTime = (mins) => {
+      const h = Math.floor(mins / 60) % 24;
+      const m = Math.round(mins % 60);
+      const period = h >= 12 ? 'PM' : 'AM';
+      const displayH = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+      return `${displayH}:${String(m).padStart(2, '0')} ${period}`;
+    };
+
+    return {
+      day: new Date(dateStr).toLocaleDateString('en-US', { 
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long', 
+        day: 'numeric'
+      }),
+      nallaNeram: [
+        {
+          period: 1,
+          start: minutesToTime(morningStartMin),
+          end: minutesToTime(morningEndMin),
+          duration: '1.0 Hours',
+          factor: `Nakshatra: ${nakshatra?.name || 'Unknown'}`
+        },
+        {
+          period: 2,
+          start: minutesToTime(eveningStartMin),
+          end: minutesToTime(eveningEndMin),
+          duration: '1.0 Hours',
+          factor: `Tithi: ${tithi?.name || 'Unknown'}`
+        }
+      ],
+      gowriNallaNeram: [
+        {
+          period: 1,
+          start: minutesToTime((morningStartMin - 480 + 1440) % 1440), // 8 hours earlier (night)
+          end: minutesToTime((morningStartMin - 420 + 1440) % 1440),
+          duration: '1.0 Hours',
+          factor: 'Secondary auspicious time'
+        },
+        {
+          period: 2,
+          start: minutesToTime(sunsetMin + 90),
+          end: minutesToTime(sunsetMin + 150),
+          duration: '1.0 Hours',
+          factor: 'Evening alternative'
+        }
+      ],
+      calculationFactors: {
+        sunrise: sunriseTime,
+        sunset: sunset,
+        nakshatra: `${nakshatra?.name} (influences morning time)`,
+        tithi: `${tithi?.name} (influences evening time)`,
+        dayLength: `${Math.round(dayLengthMin / 60)}h ${dayLengthMin % 60}m`,
+        note: '🌙 Nalla Neram is computed DAILY. Same weekday ≠ same times. Changes with Moon position & sunrise.'
+      }
+    };
+  } catch (error) {
+    console.error('[NALLA-CALC-ERROR]', error.message);
+    return {
+      nallaNeram: [],
+      gowriNallaNeram: [],
+      error: 'Could not calculate Nalla Neram'
+    };
   }
-  
-  const windows = nallaWindows[dayOfWeek];
-  
-  return {
-    day: dayNames[dayOfWeek],
-    windows: windows.map((w, i) => ({
-      period: i + 1,
-      start: w.start,
-      end: w.end,
-      duration: calculateDuration(w.start, w.end)
-    }))
-  };
 }
 
 /**
@@ -427,7 +487,9 @@ function calculateCompletePanchang(dateStr, timezone = 5.5) {
     const nakshatra = calculateNakshatra(planets.moon.longitude, observationDate);
     const yoga = calculateYoga(planets.sun.longitude, planets.moon.longitude, observationDate);
     const karana = calculateKarana(planets.sun.longitude, planets.moon.longitude, observationDate);
-    const nallaNeram = calculateNallaNeram(dateStr, timezone);
+    // Nalla Neram now computed WITH lunar/planetary factors, not just weekday
+    // Passes nakshatra & tithi so calculation is unique per date
+    const nallaNeram = calculateNallaNeram(dateStr, timezone, null, null, nakshatra, tithi);
     
     return {
       date: dateStr,

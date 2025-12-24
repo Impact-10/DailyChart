@@ -41,6 +41,16 @@ function getCachedSunriseSunset(dateStr, city, timezone) {
   };
 }
 
+function addDaysToDateStr(dateStr, days) {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const utc = new Date(Date.UTC(year, month - 1, day));
+  utc.setUTCDate(utc.getUTCDate() + days);
+  const yyyy = utc.getUTCFullYear();
+  const mm = String(utc.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(utc.getUTCDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 /**
  * Get sunrise and sunset times for a given date and location
  * Using astronomy-engine for accurate calculations
@@ -158,68 +168,59 @@ function calculateRahuKaal(dateStr, latitude, longitude, timezone, cityName) {
 
 /**
  * Calculate Yamaganda (Yama Ghantika) timings
- * Uses DrikPanchang method: 2nd Ghatika during day, 4th Ghatika during night
+ * ✅ SINGLE-SOURCE: Uses ONLY ghatika-based 8-part division
+ * 
+ * Traditional rule: Yamaganda is assigned to a specific ghatika for each weekday
+ * - DAY: 8 equal parts from sunrise to sunset
+ * - NIGHT: 8 equal parts from sunset to next sunrise
+ * 
+ * Weekday → Day Ghatika mapping: Sun=5, Mon=4, Tue=3, Wed=2, Thu=1, Fri=6, Sat=7
+ * Night Yamaganda: Always 4th night ghatika (traditional rule)
  */
 function calculateYamaganda(dateStr, latitude, longitude, timezone, cityName) {
   const { sunriseDate, sunsetDate } = getSunriseSunset(dateStr, latitude, longitude, timezone, cityName);
 
-  // Get day of week (0 = Sunday, 6 = Saturday) from the IST date string
+  // Get day of week (0 = Sunday, 6 = Saturday)
   const [year, month, day] = dateStr.split('-').map(Number);
   const dayOfWeek = new Date(year, month - 1, day).getDay();
 
-  // Golden Chennai standard Yamaganda slots - BOTH day and night are FIXED times
-  // Format: { dayStart, dayEnd, nightStart, nightEnd }
-  const yamagandaFixedSlots = {
-    0: { dayStart: '12:00 PM', dayEnd: '1:30 PM', nightStart: '6:00 PM', nightEnd: '7:30 PM' },     // Sunday
-    1: { dayStart: '10:30 AM', dayEnd: '12:00 PM', nightStart: '3:00 AM', nightEnd: '4:30 AM' },   // Monday
-    2: { dayStart: '9:00 AM', dayEnd: '10:30 AM', nightStart: '1:30 AM', nightEnd: '3:30 AM' },    // Tuesday
-    3: { dayStart: '7:30 AM', dayEnd: '9:00 AM', nightStart: '12:00 AM', nightEnd: '1:30 AM' },    // Wednesday
-    4: { dayStart: '6:00 AM', dayEnd: '7:30 AM', nightStart: '10:30 PM', nightEnd: '12:00 AM' },   // Thursday
-    5: { dayStart: '3:00 PM', dayEnd: '4:30 PM', nightStart: '9:00 PM', nightEnd: '10:30 PM' },    // Friday
-    6: { dayStart: '1:30 PM', dayEnd: '3:00 PM', nightStart: '7:30 PM', nightEnd: '9:00 PM' }      // Saturday
+  // DAY Yamaganda ghatika assignment (weekday-based)
+  const dayYamagandaGhatikaMap = {
+    0: 5, // Sunday: 5th day ghatika
+    1: 4, // Monday: 4th day ghatika
+    2: 3, // Tuesday: 3rd day ghatika
+    3: 2, // Wednesday: 2nd day ghatika
+    4: 1, // Thursday: 1st day ghatika
+    5: 6, // Friday: 6th day ghatika
+    6: 7  // Saturday: 7th day ghatika
   };
 
-  const slots = yamagandaFixedSlots[dayOfWeek];
+  const dayYamagandaGhatikaNumber = dayYamagandaGhatikaMap[dayOfWeek];
 
-  // Convert fixed time strings to Date objects using timezone-aware helper
-  function timeToDate(dateStr, timeStr, timezone) {
-    let hours = parseInt(timeStr.split(':')[0].trim());
-    const minutes = parseInt(timeStr.split(':')[1].split(' ')[0].trim());
-    const isPM = timeStr.includes('PM') && hours !== 12;
-    const isAM12 = timeStr.includes('12:') && timeStr.includes('AM');
-    
-    if (isPM) hours += 12;
-    if (isAM12) hours = 0;
-    
-    const timeFormatted = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-    return toLocalDate(dateStr, timeFormatted, timezone);
-  }
+  // NIGHT Yamaganda: Always 4th night ghatika (traditional rule)
+  const nightYamagandaGhatikaNumber = 4;
 
-  const dayStartTime = timeToDate(dateStr, slots.dayStart, timezone);
-  const dayEndTime = timeToDate(dateStr, slots.dayEnd, timezone);
-  const nightStartTime = timeToDate(dateStr, slots.nightStart, timezone);
-  let nightEndTime = timeToDate(dateStr, slots.nightEnd, timezone);
+  // === DAY PERIOD (sunrise to sunset) ===
+  const dayDurationMs = sunsetDate.getTime() - sunriseDate.getTime();
+  const dayDurationMinutes = dayDurationMs / (60 * 1000);
+  const dayGhatikaDurationMinutes = dayDurationMinutes / 8;
 
-  // Handle night windows that cross midnight
-  if (nightEndTime < nightStartTime) {
-    nightEndTime = new Date(nightEndTime.getTime() + 24 * 60 * 60 * 1000);
-  }
+  const dayGhatikas = [];
+  let dayYamagandaStart = null;
+  let dayYamagandaEnd = null;
 
-  // Calculate day duration
-  const dayDurationMinutes = (dayEndTime.getTime() - dayStartTime.getTime()) / (60 * 1000);
-  const dayGhatikaDuration = (sunsetDate.getTime() - sunriseDate.getTime()) / (60 * 1000) / 8;
-  const nightGhatikaDuration = (new Date(dateStr).setDate(new Date(dateStr).getDate() + 1) - sunsetDate.getTime()) / (60 * 1000) / 8;
-
-  // Calculate all 8 DAY Ghatikas for visualization and mark overlaps with fixed Yamaganda
-  const ghatikas = [];
   for (let i = 1; i <= 8; i++) {
-    const gStart = new Date(sunriseDate.getTime() + (i - 1) * dayGhatikaDuration * 60 * 1000);
-    const gEnd = new Date(sunriseDate.getTime() + i * dayGhatikaDuration * 60 * 1000);
+    const gStart = new Date(sunriseDate.getTime() + (i - 1) * dayGhatikaDurationMinutes * 60 * 1000);
+    const gEnd = new Date(sunriseDate.getTime() + i * dayGhatikaDurationMinutes * 60 * 1000);
     
-    // Check if this ghatika overlaps with the fixed day Yamaganda period
-    const isYamaganda = (gStart < dayEndTime && gEnd > dayStartTime);
+    const isYamaganda = (i === dayYamagandaGhatikaNumber);
     
-    ghatikas.push({
+    if (isYamaganda) {
+      dayYamagandaStart = gStart;
+      dayYamagandaEnd = gEnd;
+    }
+    
+    dayGhatikas.push({
       number: i,
       startTime: formatTime(gStart),
       endTime: formatTime(gEnd),
@@ -227,31 +228,78 @@ function calculateYamaganda(dateStr, latitude, longitude, timezone, cityName) {
     });
   }
 
-  const dayDurationHours = Math.floor(dayDurationMinutes / 60);
-  const dayDurationMins = Math.round(dayDurationMinutes % 60);
-  const nightDurationMinutes = (nightEndTime.getTime() - nightStartTime.getTime()) / (60 * 1000);
-  const nightDurationHours = Math.floor(nightDurationMinutes / 60);
-  const nightDurationMins = Math.round(nightDurationMinutes % 60);
+  const dayDuration = Math.round(dayGhatikaDurationMinutes);
+  const dayHours = Math.floor(dayDuration / 60);
+  const dayMinutes = dayDuration % 60;
+
+  // === NIGHT PERIOD (sunset to next sunrise) ===
+  // Get next day's sunrise using timezone-safe date arithmetic (avoid toISOString() UTC drift)
+  const nextDateStr = addDaysToDateStr(dateStr, 1);
+  let { sunriseDate: nextSunriseDate } = getSunriseSunset(nextDateStr, latitude, longitude, timezone, cityName);
+  // Safety: ensure night window is strictly sunset -> next sunrise
+  if (nextSunriseDate.getTime() <= sunsetDate.getTime()) {
+    nextSunriseDate = new Date(nextSunriseDate.getTime() + 24 * 60 * 60 * 1000);
+  }
+
+  const nightDurationMs = nextSunriseDate.getTime() - sunsetDate.getTime();
+  const nightDurationMinutes = nightDurationMs / (60 * 1000);
+  const nightGhatikaDurationMinutes = nightDurationMinutes / 8;
+
+  const nightGhatikas = [];
+  let nightYamagandaStart = null;
+  let nightYamagandaEnd = null;
+
+  for (let i = 1; i <= 8; i++) {
+    const gStart = new Date(sunsetDate.getTime() + (i - 1) * nightGhatikaDurationMinutes * 60 * 1000);
+    const gEnd = new Date(sunsetDate.getTime() + i * nightGhatikaDurationMinutes * 60 * 1000);
+    
+    const isYamaganda = (i === nightYamagandaGhatikaNumber);
+    
+    if (isYamaganda) {
+      nightYamagandaStart = gStart;
+      nightYamagandaEnd = gEnd;
+    }
+    
+    nightGhatikas.push({
+      number: i,
+      startTime: formatTime(gStart),
+      endTime: formatTime(gEnd),
+      isYamaganda: isYamaganda
+    });
+  }
+
+  const nightDuration = Math.round(nightGhatikaDurationMinutes);
+  const nightHours = Math.floor(nightDuration / 60);
+  const nightMinutes = nightDuration % 60;
+
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
   return {
+    method: 'ghatika-based (8-part day/night division)',
+    day: dayNames[dayOfWeek],
+    dayOfWeek: dayOfWeek,
     dayPeriod: {
-      startTime: formatIST(dayStartTime),
-      endTime: formatIST(dayEndTime),
-      duration: `${dayDurationHours}h ${dayDurationMins}m`,
-      durationMinutes: Math.round(dayDurationMinutes)
+      activeGhatika: dayYamagandaGhatikaNumber,
+      startTime: formatIST(dayYamagandaStart),
+      endTime: formatIST(dayYamagandaEnd),
+      duration: `${dayHours}h ${dayMinutes}m`,
+      durationMinutes: dayDuration,
+      ghatikas: dayGhatikas
     },
     nightPeriod: {
-      startTime: formatIST(nightStartTime),
-      endTime: formatIST(nightEndTime),
-      duration: `${nightDurationHours}h ${nightDurationMins}m`,
-      durationMinutes: Math.round(nightDurationMinutes)
+      activeGhatika: nightYamagandaGhatikaNumber,
+      startTime: formatIST(nightYamagandaStart),
+      endTime: formatIST(nightYamagandaEnd),
+      duration: `${nightHours}h ${nightMinutes}m`,
+      durationMinutes: nightDuration,
+      ghatikas: nightGhatikas
     },
-    startTime: formatIST(dayStartTime),
-    endTime: formatIST(dayEndTime),
-    duration: `${dayDurationHours}h ${dayDurationMins}m`,
-    durationMinutes: Math.round(dayDurationMinutes),
-    ghatikas,
-    activeGhatika: 0
+    // Legacy fields for backward compatibility (use dayPeriod values)
+    startTime: formatIST(dayYamagandaStart),
+    endTime: formatIST(dayYamagandaEnd),
+    duration: `${dayHours}h ${dayMinutes}m`,
+    durationMinutes: dayDuration,
+    ghatikas: dayGhatikas
   };
 }
 
@@ -313,5 +361,160 @@ module.exports = {
   calculateAuspiciousTimes,
   getSunriseSunset,
   calculateRahuKaal,
-  calculateYamaganda
+  calculateYamaganda,
+  calculateGowriNallaNeram
 };
+
+/**
+ * Calculate Gowri Nalla Neram windows
+ * Logic:
+ * - Compute accurate sunrise/sunset (location-based)
+ * - Day duration = sunset - sunrise; Night duration = 24h - day
+ * - Divide each into 8 equal slots
+ * - Map slots to Good/Average/Bad per weekday table
+ * - Exclude overlaps with Rahu Kaal and Yamaganda (day)
+ */
+function calculateGowriNallaNeram(dateStr, cityName) {
+  const CITIES = {
+    Chennai: { lat: 13.0827, lon: 80.2707, tz: 5.5 },
+    Mumbai: { lat: 19.0760, lon: 72.8777, tz: 5.5 },
+    Delhi: { lat: 28.6139, lon: 77.2090, tz: 5.5 },
+    Bangalore: { lat: 12.9716, lon: 77.5946, tz: 5.5 },
+    Kolkata: { lat: 22.5726, lon: 88.3639, tz: 5.5 },
+    Hyderabad: { lat: 17.3850, lon: 78.4867, tz: 5.5 }
+  };
+  const city = CITIES[cityName] || CITIES.Chennai;
+
+  const { sunriseDate, sunsetDate, sunrise, sunset, source } = getSunriseSunset(dateStr, city.lat, city.lon, city.tz, cityName);
+
+  // Weekday mapping: 0=Sun ... 6=Sat
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const weekday = new Date(y, m - 1, d).getDay();
+
+  // Day/Night durations
+  const dayDurationMin = Math.round((sunsetDate.getTime() - sunriseDate.getTime()) / (60 * 1000));
+  const nightDurationMin = (24 * 60) - dayDurationMin;
+
+  const daySlotMin = dayDurationMin / 8;
+  const nightSlotMin = nightDurationMin / 8;
+
+  // Gowri quality table (standard Tamil Panchangam)
+  // Slots: 1-8 for day, 1-8 for night
+  const gowriQualityTable = {
+    0: { day: { good: [1, 8], average: [2, 3, 4, 5, 6, 7], bad: [] }, night: { good: [4, 7], average: [1, 2, 3, 5, 6, 8], bad: [] } }, // Sunday
+    1: { day: { good: [1, 6], average: [2, 3, 4, 5, 7, 8], bad: [] }, night: { good: [2, 7], average: [1, 3, 4, 5, 6, 8], bad: [] } }, // Monday
+    2: { day: { good: [2, 7], average: [1, 3, 4, 5, 6, 8], bad: [] }, night: { good: [1, 6], average: [2, 3, 4, 5, 7, 8], bad: [] } }, // Tuesday
+    3: { day: { good: [3, 8], average: [1, 2, 4, 5, 6, 7], bad: [] }, night: { good: [4], average: [1, 2, 3, 5, 6, 7, 8], bad: [] } },    // Wednesday
+    4: { day: { good: [4, 5], average: [1, 2, 3, 6, 7, 8], bad: [] }, night: { good: [3, 8], average: [1, 2, 4, 5, 6, 7], bad: [] } }, // Thursday
+    5: { day: { good: [6, 7], average: [1, 2, 3, 4, 5, 8], bad: [] }, night: { good: [1], average: [2, 3, 4, 5, 6, 7, 8], bad: [] } },    // Friday
+    6: { day: { good: [5], average: [1, 2, 3, 4, 6, 7, 8], bad: [] }, night: { good: [2, 6], average: [1, 3, 4, 5, 7, 8], bad: [] } }     // Saturday
+  };
+
+  function getGowriQuality(weekday, period, slotIndex) {
+    const table = gowriQualityTable[weekday][period];
+    if (table.good.includes(slotIndex)) return 'Good';
+    if (table.bad.includes(slotIndex)) return 'Bad';
+    return 'Average';
+  }
+
+  // Build day slots (strict 8-part division)
+  const daySlots = [];
+  for (let i = 1; i <= 8; i++) {
+    const start = new Date(sunriseDate.getTime() + (i - 1) * daySlotMin * 60 * 1000);
+    const end = new Date(sunriseDate.getTime() + i * daySlotMin * 60 * 1000);
+    const quality = getGowriQuality(weekday, 'day', i);
+    daySlots.push({
+      type: 'gowri',
+      period: 'day',
+      slotIndex: i,
+      quality,
+      start: formatIST(start),
+      end: formatIST(end),
+      duration: `${Math.floor(daySlotMin / 60)}h ${Math.round(daySlotMin % 60)}m`,
+      label: quality // Keep for UI compat
+    });
+  }
+
+  // Build night slots (strict 8-part division from sunset)
+  const nightStart = sunsetDate;
+  const nightSlots = [];
+  for (let i = 1; i <= 8; i++) {
+    const start = new Date(nightStart.getTime() + (i - 1) * nightSlotMin * 60 * 1000);
+    const end = new Date(nightStart.getTime() + i * nightSlotMin * 60 * 1000);
+    const quality = getGowriQuality(weekday, 'night', i);
+    nightSlots.push({
+      type: 'gowri',
+      period: 'night',
+      slotIndex: i,
+      quality,
+      start: formatIST(start),
+      end: formatIST(end),
+      duration: `${Math.floor(nightSlotMin / 60)}h ${Math.round(nightSlotMin % 60)}m`,
+      label: quality // Keep for UI compat
+    });
+  }
+
+  // NALLA NERAM DERIVATION:
+  // Start with Gowri Good slots, then exclude inauspicious overlaps
+  const rahuSlotsMap = { 0: 8, 1: 2, 2: 7, 3: 5, 4: 6, 5: 4, 6: 3 };
+  const rahuSlotIndex = rahuSlotsMap[weekday];
+  const yamaganda = calculateYamaganda(dateStr, city.lat, city.lon, city.tz, cityName);
+  const dayGhatikas = yamaganda?.ghatikas || [];
+
+  // Day slots: exclude Rahu Kaal and Yamaganda overlaps
+  const nallaNeramDaySlots = daySlots
+    .filter((s) => s.quality === 'Good')
+    .map((s) => {
+      const filtersApplied = [];
+      const isRahu = s.slotIndex === rahuSlotIndex;
+      const yg = dayGhatikas.find((g) => g.number === s.slotIndex);
+      const isYamaganda = yg ? yg.isYamaganda : false;
+      
+      if (isRahu) filtersApplied.push('rahuExcluded');
+      if (isYamaganda) filtersApplied.push('yamagandaExcluded');
+      
+      return {
+        ...s,
+        derivedFrom: 'gowri',
+        gowriSlotIndex: s.slotIndex,
+        filtersApplied,
+        excluded: isRahu || isYamaganda
+      };
+    })
+    .filter((s) => !s.excluded);
+
+  // Night slots: no exclusions (Rahu/Yamaganda are daytime only)
+  const nallaNeramNightSlots = nightSlots
+    .filter((s) => s.quality === 'Good')
+    .map((s) => ({
+      ...s,
+      derivedFrom: 'gowri',
+      gowriSlotIndex: s.slotIndex,
+      filtersApplied: [],
+      excluded: false
+    }));
+
+  return {
+    calculationMethod: 'Location-based Gowri 8-part division system',
+    meta: {
+      locationAware: true,
+      latitude: city.lat,
+      longitude: city.lon,
+      timezone: city.tz,
+      weekday,
+      sunrise,
+      sunset,
+      sunriseSource: source,
+      dayDuration: `${Math.floor(dayDurationMin / 60)}h ${dayDurationMin % 60}m`,
+      nightDuration: `${Math.floor(nightDurationMin / 60)}h ${nightDurationMin % 60}m`,
+      daySlotMinutes: Math.round(daySlotMin),
+      nightSlotMinutes: Math.round(nightSlotMin)
+    },
+    gowriSlots: {
+      day: daySlots,
+      night: nightSlots
+    },
+    nallaNeramSlots: [...nallaNeramDaySlots, ...nallaNeramNightSlots],
+    notes: 'Auspicious timings vary by Panchangam tradition. This uses standard Tamil Gowri system.'
+  };
+}

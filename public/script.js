@@ -42,6 +42,17 @@ const RASI_NAMES = [
 
 // Get API base URL - works for both localhost and deployed versions
 function getAPIBaseURL() {
+    // Optional override (useful when the website is hosted separately from the API)
+    // 1) Query param: ?api=https://your-api.example.com
+    // 2) LocalStorage: localStorage.setItem('apiBaseUrl', 'https://your-api.example.com')
+    try {
+        const params = new URLSearchParams(window.location.search);
+        const qp = params.get('api') || params.get('apiBaseUrl');
+        if (qp && /^https?:\/\//i.test(qp)) return qp.replace(/\/$/, '');
+        const ls = window.localStorage ? window.localStorage.getItem('apiBaseUrl') : null;
+        if (ls && /^https?:\/\//i.test(ls)) return ls.replace(/\/$/, '');
+    } catch (_) {}
+
     // If running on localhost, use localhost
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         return `http://localhost:${window.location.port || 3000}`;
@@ -511,6 +522,9 @@ async function loadAuspiciousTimes(dateStr, cityName) {
         // Update UI
         renderAuspiciousTimes(data);
         renderPanchang(data);
+
+        // Load Tamil Calendar for the month
+        await loadTamilCalendar(dateStr, cityName);
         
         // Show the auspicious times section
         document.getElementById('auspiciousTimesContainer').style.display = 'block';
@@ -518,6 +532,136 @@ async function loadAuspiciousTimes(dateStr, cityName) {
     } catch (error) {
         console.error('Error loading auspicious times and panchang:', error);
     }
+}
+
+// =====================================================
+// Tamil Calendar Functions
+// =====================================================
+
+let currentTamilCalendar = null;
+
+function escapeHtml(str) {
+    return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+}
+
+async function loadTamilCalendar(dateStr, cityName) {
+    try {
+        const [yStr, mStr] = dateStr.split('-');
+        const year = Number(yStr);
+        const month = Number(mStr);
+        const response = await fetch(`${API_BASE_URL}/api/tamil-calendar?year=${year}&month=${month}&city=${cityName}`);
+        if (!response.ok) {
+            throw new Error('Failed to load tamil calendar');
+        }
+        currentTamilCalendar = await response.json();
+        renderTamilCalendar(currentTamilCalendar);
+    } catch (err) {
+        console.error('Error loading tamil calendar:', err);
+        const container = document.getElementById('tamilCalendarContainer');
+        if (container) container.style.display = 'none';
+    }
+}
+
+function renderTamilCalendar(payload) {
+    const container = document.getElementById('tamilCalendarContainer');
+    const grid = document.getElementById('tamilCalendarGrid');
+    const label = document.getElementById('tamilCalendarMonthLabel');
+    const meta = document.getElementById('tamilCalendarMeta');
+
+    if (!container || !grid || !label || !meta) return;
+    if (!payload || !Array.isArray(payload.weeks)) {
+        container.style.display = 'none';
+        return;
+    }
+
+    container.style.display = 'block';
+
+    const monthLabel = payload?.monthLabel ? `${payload.monthLabel.tamil} (${payload.monthLabel.english})` : '--';
+    label.textContent = monthLabel;
+    meta.textContent = `${payload.city} • ${payload.timezone}`;
+
+    grid.innerHTML = '';
+
+    // Weekday header
+    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    weekdays.forEach((w) => {
+        const el = document.createElement('div');
+        el.className = 'tamil-calendar-weekday';
+        el.textContent = w;
+        grid.appendChild(el);
+    });
+
+    // Render weeks exactly as backend returns (including null placeholders)
+    payload.weeks.forEach((week) => {
+        (week || []).forEach((day) => {
+            if (!day) {
+                const empty = document.createElement('div');
+                empty.className = 'tamil-calendar-cell tamil-calendar-cell--empty';
+                grid.appendChild(empty);
+                return;
+            }
+
+            const cell = document.createElement('div');
+            cell.className = 'tamil-calendar-cell';
+
+            const gregDay = day?.gregorian?.day ?? '--';
+            const tamilDay = day?.tamil?.day ?? '--';
+
+            const dayRow = document.createElement('div');
+            dayRow.className = 'tamil-calendar-dayrow';
+            dayRow.innerHTML = `
+                <span class="tamil-calendar-gregday">${escapeHtml(gregDay)}</span>
+                <span class="tamil-calendar-tamilday">${escapeHtml(tamilDay)}</span>
+            `;
+            cell.appendChild(dayRow);
+
+            const tagsEl = document.createElement('div');
+            tagsEl.className = 'tamil-calendar-tags';
+            const tags = Array.isArray(day.tags) ? day.tags : [];
+            tags.forEach((t) => {
+                const tag = document.createElement('span');
+                tag.className = 'tamil-calendar-tag';
+                tag.textContent = t?.label ?? t?.key ?? '';
+                tagsEl.appendChild(tag);
+            });
+            cell.appendChild(tagsEl);
+
+            cell.addEventListener('click', () => showTamilCalendarDayDetails(day));
+            grid.appendChild(cell);
+        });
+    });
+}
+
+function showTamilCalendarDayDetails(day) {
+    const detailsCard = document.getElementById('tamilCalendarDayDetails');
+    const title = document.getElementById('tamilCalendarDayTitle');
+    const subtitle = document.getElementById('tamilCalendarDaySubtitle');
+    const body = document.getElementById('tamilCalendarDayBody');
+    if (!detailsCard || !title || !subtitle || !body) return;
+
+    const date = day?.date ?? '--';
+    const weekday = day?.weekday ?? '--';
+    const tm = day?.tamil?.month;
+    const tamilMonth = tm ? `${tm.tamil} (${tm.english})` : '--';
+    const tamilDay = day?.tamil?.day ?? '--';
+
+    title.textContent = `${date} • ${weekday}`;
+    subtitle.textContent = `${tamilMonth} • நாள் ${tamilDay}`;
+
+    // Keep this as a direct projection of backend payload for transparency.
+    body.innerHTML = `
+        <div>
+            <strong>Tags:</strong> ${(Array.isArray(day.tags) && day.tags.length) ? day.tags.map(t => escapeHtml(t.label || t.key)).join(', ') : '--'}
+        </div>
+        <pre>${escapeHtml(JSON.stringify(day, null, 2))}</pre>
+    `;
+
+    detailsCard.style.display = 'block';
 }
 
 function renderAuspiciousTimes(data) {

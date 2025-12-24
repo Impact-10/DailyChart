@@ -187,6 +187,14 @@ Daily Chart/
 └── README.md
 ```
 
+## Documentation
+
+Complete system documentation:
+- **[HARDENING_REPORT.md](HARDENING_REPORT.md)** - System architecture and hardening details
+- **[API_GUIDE.md](API_GUIDE.md)** - Field-by-field API response documentation
+- **[VALIDATION_REPORT.md](VALIDATION_REPORT.md)** - Test results and compliance checklist
+- **[NIGHT_NALLA_POLICY.md](NIGHT_NALLA_POLICY.md)** - Policy on displaying night auspicious times
+
 ## Environment Variables
 
 Optional: Set custom port
