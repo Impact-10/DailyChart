@@ -63,6 +63,31 @@ function getAPIBaseURL() {
 
 const API_BASE_URL = getAPIBaseURL();
 
+// Fetch helper with retries/backoff (helps with flaky networks and slow API wake-ups)
+async function fetchJsonWithRetry(url, options = {}, attempts = 3, backoffMs = 300) {
+    let lastErr;
+    for (let i = 0; i < attempts; i++) {
+        try {
+            const res = await fetch(url, options);
+            if (!res.ok) {
+                let msg = `HTTP ${res.status}`;
+                try {
+                    const j = await res.json();
+                    if (j && j.error) msg = j.error;
+                } catch (_) {}
+                throw new Error(msg);
+            }
+            return await res.json();
+        } catch (err) {
+            lastErr = err;
+            if (i < attempts - 1) {
+                await new Promise((r) => setTimeout(r, backoffMs * (i + 1)));
+            }
+        }
+    }
+    throw lastErr;
+}
+
 /**
  * Get current time in IST
  */
@@ -271,14 +296,7 @@ async function loadChart() {
     
     try {
         const url = `${API_BASE_URL}/api/daily-chart?date=${date}&time=${time}&city=${city}`;
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to load chart');
-        }
-        
-        const data = await response.json();
+        const data = await fetchJsonWithRetry(url);
         
         // Hide loading, show results with animation
         loadingDiv.style.display = 'none';
@@ -428,13 +446,7 @@ let liveCountdownTimer = null;
 async function loadAuspiciousTimes(dateStr, cityName) {
     try {
         // Use new panchang endpoint that includes both auspicious times and panchang data
-        const response = await fetch(`${API_BASE_URL}/api/panchang?date=${dateStr}&city=${cityName}`);
-        
-        if (!response.ok) {
-            throw new Error('Failed to load auspicious times and panchang');
-        }
-        
-        const data = await response.json();
+        const data = await fetchJsonWithRetry(`${API_BASE_URL}/api/panchang?date=${dateStr}&city=${cityName}`);
         
         // ========== COMPREHENSIVE DEBUGGING ==========
         console.clear();
@@ -554,11 +566,7 @@ async function loadTamilCalendar(dateStr, cityName) {
         const [yStr, mStr] = dateStr.split('-');
         const year = Number(yStr);
         const month = Number(mStr);
-        const response = await fetch(`${API_BASE_URL}/api/tamil-calendar?year=${year}&month=${month}&city=${cityName}`);
-        if (!response.ok) {
-            throw new Error('Failed to load tamil calendar');
-        }
-        currentTamilCalendar = await response.json();
+        currentTamilCalendar = await fetchJsonWithRetry(`${API_BASE_URL}/api/tamil-calendar?year=${year}&month=${month}&city=${cityName}`);
         renderTamilCalendar(currentTamilCalendar);
     } catch (err) {
         console.error('Error loading tamil calendar:', err);
