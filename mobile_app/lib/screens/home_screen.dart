@@ -3,6 +3,9 @@ import 'home_tab_screen.dart';
 import 'tamil_calendar_screen.dart';
 import 'settings_screen.dart';
 
+import '../app_strings.dart';
+import '../widgets/language_toggle.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -28,6 +31,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
+
     final pages = [
       HomeTabScreen(cityListenable: _city),
       TamilCalendarScreen(
@@ -37,17 +42,39 @@ class _HomeScreenState extends State<HomeScreen> {
       SettingsScreen(cityListenable: _city),
     ];
 
+    String titleForIndex() {
+      switch (_index) {
+        case 0:
+          return s.navHome;
+        case 1:
+          return s.navTamilCalendar;
+        case 2:
+          return s.navSettings;
+      }
+      return s.appTitle;
+    }
+
     return Scaffold(
+      appBar: AppBar(
+        title: Text(titleForIndex()),
+        actions: const [
+          Padding(
+            padding: EdgeInsets.only(right: 12),
+            child: Center(child: LanguageToggle()),
+          ),
+        ],
+      ),
       body: SafeArea(
+        top: false,
         child: IndexedStack(index: _index, children: pages),
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.calendar_month), label: 'Tamil Calendar'),
-          NavigationDestination(icon: Icon(Icons.settings), label: 'Settings'),
+        destinations: [
+          NavigationDestination(icon: const Icon(Icons.home), label: s.navHome),
+          NavigationDestination(icon: const Icon(Icons.calendar_month), label: s.navTamilCalendar),
+          NavigationDestination(icon: const Icon(Icons.settings), label: s.navSettings),
         ],
       ),
     );

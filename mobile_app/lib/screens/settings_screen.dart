@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../config.dart';
 import '../services/api_client.dart';
 import '../services/city_service.dart';
+import '../app_strings.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key, required this.cityListenable});
@@ -36,14 +37,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final s = S.of(context);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       children: [
-        Text('Settings', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+        Text(s.settingsTitle, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
         const SizedBox(height: 16),
 
-        Text('City', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+        Text(s.settingsCity, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
         const SizedBox(height: 8),
         ValueListenableBuilder<String>(
           valueListenable: widget.cityListenable,
@@ -54,23 +56,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onChanged: (v) {
                 if (v != null) widget.cityListenable.value = v;
               },
-              decoration: const InputDecoration(labelText: 'City'),
+              decoration: InputDecoration(labelText: s.settingsCity),
             );
           },
         ),
 
         const SizedBox(height: 16),
-        Text('Time format', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+        Text(s.settingsTimeFormat, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
         const SizedBox(height: 8),
         SwitchListTile(
           value: _use24h,
           onChanged: (v) => setState(() => _use24h = v),
-          title: Text(_use24h ? '24-hour' : '12-hour'),
-          subtitle: const Text('Backend-provided time strings are displayed as-is.'),
+          title: Text(_use24h ? s.settingsTime24h : s.settingsTime12h),
+          subtitle: Text(s.settingsTimeNote),
         ),
 
         const SizedBox(height: 16),
-        Text('About', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+        Text(s.settingsAbout, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
         const SizedBox(height: 8),
         Card(
           child: Padding(
@@ -87,15 +89,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
 
         const SizedBox(height: 16),
-        Text('Calculation notes', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+        Text(s.settingsCalcNotes, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
         const SizedBox(height: 8),
-        const Card(
+        Card(
           child: Padding(
-            padding: EdgeInsets.all(12),
-            child: Text(
-              'This app displays server-calculated values. Lists are rendered without client-side filtering or reordering.\n'
-              'Lapse indicators are display-only and use the server timezone offset for comparisons.',
-            ),
+            padding: const EdgeInsets.all(12),
+            child: Text(s.settingsCalcBody),
           ),
         ),
       ],

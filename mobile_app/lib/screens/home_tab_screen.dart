@@ -10,6 +10,7 @@ import '../utils/time_window_lapse.dart';
 import '../widgets/ghatika_wheel.dart';
 import '../widgets/rasi_chart_view.dart';
 import '../widgets/time_window_card.dart';
+import '../app_strings.dart';
 
 class HomeTabScreen extends StatefulWidget {
   const HomeTabScreen({super.key, required this.cityListenable});
@@ -141,7 +142,7 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
     return bestCurrent ?? bestNext;
   }
 
-  List<_ActiveWindow> _computeTopWindows() {
+  List<_ActiveWindow> _computeTopWindows(S s) {
     // Top cards should be: Nalla Neram, Rahu Kalam, and Yamagandam.
     // Do not show Gowri here (can coincide with Rahu and cause confusion).
 
@@ -155,7 +156,7 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
       final start = w['start']?.toString();
       final end = w['end']?.toString();
       if (start == null || end == null) continue;
-      nallaCandidates.add(_ActiveWindow(title: 'Nalla Neram', subtitle: null, startText: start, endText: end));
+      nallaCandidates.add(_ActiveWindow(title: s.nallaNeram, subtitle: null, startText: start, endText: end));
     }
     final nallaPicked = _pickCurrentOrNext(nallaCandidates);
     if (nallaPicked != null) picked.add(nallaPicked);
@@ -166,7 +167,7 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
       final start = rahu['startTime']?.toString();
       final end = rahu['endTime']?.toString();
       if (start != null && end != null) {
-        picked.add(_ActiveWindow(title: 'Rahu Kalam', subtitle: null, startText: start, endText: end));
+        picked.add(_ActiveWindow(title: s.rahuKalam, subtitle: null, startText: start, endText: end));
       }
     }
 
@@ -180,7 +181,7 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
         final start = dayPeriod['startTime']?.toString();
         final end = dayPeriod['endTime']?.toString();
         if (start != null && end != null) {
-          candidates.add(_ActiveWindow(title: 'Yamagandam (day)', subtitle: null, startText: start, endText: end));
+          candidates.add(_ActiveWindow(title: s.yamagandamDay, subtitle: null, startText: start, endText: end));
         }
       }
 
@@ -189,7 +190,7 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
         final start = nightPeriod['startTime']?.toString();
         final end = nightPeriod['endTime']?.toString();
         if (start != null && end != null) {
-          candidates.add(_ActiveWindow(title: 'Yamagandam (night)', subtitle: null, startText: start, endText: end));
+          candidates.add(_ActiveWindow(title: s.yamagandamNight, subtitle: null, startText: start, endText: end));
         }
       }
 
@@ -202,9 +203,10 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final tzOffset = _tzOffsetMinutes();
     final dateStr = _dateStr();
-    final topWindows = _computeTopWindows();
+    final topWindows = _computeTopWindows(s);
 
     return RefreshIndicator(
       onRefresh: _fetch,

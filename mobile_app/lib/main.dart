@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'screens/home_screen.dart';
+import 'screens/splash_screen.dart';
+
+import 'app_language.dart';
 
 void main() {
   runApp(const DailyChartApp());
 }
 
 class DailyChartApp extends StatelessWidget {
-  const DailyChartApp({super.key});
+  const DailyChartApp({super.key, this.skipSplash = false});
+
+  final bool skipSplash;
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +61,13 @@ class DailyChartApp extends StatelessWidget {
           titleMedium: TextStyle(fontWeight: FontWeight.w600),
         ),
       ),
-      home: const HomeScreen(),
+      builder: (context, child) {
+        return AppLanguageScope(
+          notifier: AppLanguageController.current,
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
+      home: skipSplash ? const HomeScreen() : const SplashScreen(next: HomeScreen()),
     );
   }
 }

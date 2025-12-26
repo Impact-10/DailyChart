@@ -12,11 +12,12 @@ import 'package:daily_chart_mobile/main.dart';
 
 void main() {
   testWidgets('App builds', (WidgetTester tester) async {
-    await tester.pumpWidget(const DailyChartApp());
+    await tester.pumpWidget(const DailyChartApp(skipSplash: true));
+    await tester.pumpAndSettle();
 
     expect(find.byType(NavigationBar), findsOneWidget);
-    expect(find.text('Home'), findsWidgets);
-    expect(find.text('Tamil Calendar'), findsWidgets);
-    expect(find.text('Settings'), findsWidgets);
+    expect(find.byIcon(Icons.home), findsWidgets);
+    expect(find.byIcon(Icons.calendar_month), findsWidgets);
+    expect(find.byIcon(Icons.settings), findsWidgets);
   });
 }

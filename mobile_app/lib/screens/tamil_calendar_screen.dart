@@ -3,6 +3,7 @@ import '../services/api_client.dart';
 import '../services/city_service.dart';
 import '../services/tamil_calendar_service.dart';
 import '../utils/time_window_lapse.dart';
+import '../app_strings.dart';
 
 class TamilCalendarScreen extends StatefulWidget {
   const TamilCalendarScreen({
@@ -114,7 +115,7 @@ class _TamilCalendarScreenState extends State<TamilCalendarScreen> {
         setState(() {
           _data = _cachedData;
           _stale = true;
-          _error = 'Showing cached data';
+          _error = S.of(context).showingCachedData;
         });
       } else {
         setState(() => _error = e.toString());
@@ -125,6 +126,7 @@ class _TamilCalendarScreenState extends State<TamilCalendarScreen> {
   }
 
   void _showDayDetails(Map<String, dynamic> day) {
+    final s = S.of(context);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -146,12 +148,12 @@ class _TamilCalendarScreenState extends State<TamilCalendarScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        (day['date'] ?? 'Day details').toString(),
+                        (day['date'] ?? s.dayDetailsFallback).toString(),
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                     ),
                     IconButton(
-                      tooltip: 'Close',
+                      tooltip: s.close,
                       onPressed: () => Navigator.of(context).pop(),
                       icon: const Icon(Icons.close),
                     ),
@@ -169,6 +171,7 @@ class _TamilCalendarScreenState extends State<TamilCalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final tzOffset = (_data?['timezoneOffsetMinutes'] is int)
         ? (_data?['timezoneOffsetMinutes'] as int)
         : int.tryParse(_data?['timezoneOffsetMinutes']?.toString() ?? '') ?? 0;
@@ -180,7 +183,7 @@ class _TamilCalendarScreenState extends State<TamilCalendarScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
           children: [
-            Text('Tamil Calendar', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+            Text(s.tamilCalendarTitle, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
             const SizedBox(height: 12),
             LayoutBuilder(
               builder: (context, constraints) {
@@ -189,7 +192,7 @@ class _TamilCalendarScreenState extends State<TamilCalendarScreen> {
                 final monthControl = Row(
                   children: [
                     IconButton(
-                      tooltip: 'Previous month',
+                      tooltip: s.prevMonth,
                       onPressed: _loading ? null : () => _shiftMonth(-1),
                       icon: const Icon(Icons.chevron_left),
                     ),
@@ -214,7 +217,7 @@ class _TamilCalendarScreenState extends State<TamilCalendarScreen> {
                       ),
                     ),
                     IconButton(
-                      tooltip: 'Next month',
+                      tooltip: s.nextMonth,
                       onPressed: _loading ? null : () => _shiftMonth(1),
                       icon: const Icon(Icons.chevron_right),
                     ),
@@ -230,7 +233,7 @@ class _TamilCalendarScreenState extends State<TamilCalendarScreen> {
                       onChanged: (v) {
                         if (v != null) widget.cityListenable.value = v;
                       },
-                      decoration: const InputDecoration(labelText: 'City'),
+                      decoration: InputDecoration(labelText: s.settingsCity),
                     );
                   },
                 );
@@ -270,7 +273,7 @@ class _TamilCalendarScreenState extends State<TamilCalendarScreen> {
               const SizedBox(height: 12),
               if (_loading) const Center(child: CircularProgressIndicator()),
               if (!_loading && _data == null)
-                const Center(child: Padding(padding: EdgeInsets.all(24), child: Text('No data yet'))),
+                Center(child: Padding(padding: const EdgeInsets.all(24), child: Text(s.noDataYet))),
               if (!_loading && _data != null) ...[
                 if (_data!['monthLabel'] is Map)
                   Padding(
