@@ -3,8 +3,11 @@ import 'screens/home_screen.dart';
 import 'screens/splash_screen.dart';
 
 import 'app_language.dart';
+import 'services/api_client.dart';
 
 void main() {
+  // Setup relaxed HTTP certificate verification for testing.
+  ApiClient.setupHttpOverrides();
   runApp(const DailyChartApp());
 }
 
